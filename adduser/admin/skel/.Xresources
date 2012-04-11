@@ -1,0 +1,16 @@
+!!!! Emacs !!!!
+! disable XIM
+Emacs*useXIM: false
+! enable antialias
+Emacs.FontBackend: xft
+! disable antialias
+!Emacs.FontBackend: x
+
+!!!! XDvi !!!!
+XDvi.mainTranslatons: #override \
+  :<Key>h: left()\n\
+  :<Key>j: down()\n\
+  :<Key>k: up()\n\
+  :<Key>l: right\n\
+  :<Key>z: set-shrink-factor(-)\n\
+  :<Key>Z: set-shrink-factor(+)\n
