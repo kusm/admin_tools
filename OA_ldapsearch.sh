@@ -14,17 +14,11 @@
 ### $ "this script" uid=k.sakai uidNumber=3152
 ### 
 
-if [ $UID != 0 ] ; then
-	echo "For this script, you have to use 'sudo' command"
-	exit 0
-fi
-
 IFS=:
-PASS=`cat /etc/ldap.secret`
 SEARCH_FILTER="(&(`echo "$*" | sed -e 's/:/\)\(/g'`))"
 echo "$SEARCH_FILTER"
-echo "ldapsearch -D \"cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp\" -w \$PASS -b \"dc=math,dc=kyoto-u,dc=ac,dc=jp\" \"$SEARCH_FILTER\""
+echo "ldapsearch -D \"cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp\" -W -b \"dc=math,dc=kyoto-u,dc=ac,dc=jp\" \"$SEARCH_FILTER\""
 
 echo "Search Results"
-ldapsearch -D "cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp" -w $PASS -b "dc=math,dc=kyoto-u,dc=ac,dc=jp" "$SEARCH_FILTER" -v
+ldapsearch -D "cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp" -W -b "dc=math,dc=kyoto-u,dc=ac,dc=jp" "$SEARCH_FILTER" -v
 
