@@ -1,0 +1,7 @@
+structuralObjectClass
+entryUUID
+creatorsName
+createTimestamp
+entryCSN
+modifiersName
+modifyTimestamp
