@@ -10,7 +10,7 @@ LDAPOPTIONS = "-vW -D #{LDAPMANAGER}"
 $config = {}
 
 opts = OptionParser.new
-opts.on('-c', '--command=COMMAND', "addtogroup, removebygroup") do |command|
+opts.on('-c', '--command=COMMAND', "Subcommand: add, remove") do |command|
 	set_mode command
 end
 opts.on('-g', '--group [GROUP_CN]', "Group to modify") do |group|
@@ -27,10 +27,10 @@ end
 
 def set_mode(command)
 	case (command)
-	when 'addtogroup'
-		$config[:command] = :addtogroup
-	when 'removebygroup'
-		$config[:command] = :removebygroup
+	when 'add', 'add_to_group'
+		$config[:command] = :add_to_group
+	when 'remove', 'remove_from_group'
+		$config[:command] = :remove_from_group
 	else
 		puts "No such command #{command}"
 	end
@@ -65,17 +65,17 @@ def add_to_group(user, group)
 	modify_impl('add', user, group)
 end
 
-def remove_by_group(user, group)
+def remove_from_group(user, group)
 	modify_impl('delete', user, group)
 end
 
 case ($config[:command])
-when :addtogroup
+when :add_to_group
 	p $config
 	add_to_group($config[:user], $config[:group])
-when :removebygroup
+when :remove_from_group
 	p $config
-	remove_by_group($config[:user], $config[:group])
+	remove_from_group($config[:user], $config[:group])
 when :changeshell
 	p $config
 	#change_shell($config[:user], $config[:shell])
