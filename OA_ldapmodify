@@ -10,7 +10,7 @@ LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 $config = {}
 
 $opts = OptionParser.new
-$opts.on('-c', '--command=COMMAND', "Sub command: add, remove") do |command|
+$opts.on('-c', '--command=COMMAND', "Sub command: add, remove, chsh") do |command|
 	set_mode command
 end
 $opts.on('-g', '--group=GROUP_CN', "Group to modify") do |group|
@@ -45,38 +45,38 @@ if (!ARGV.empty?) then
 	$opts.order!(ARGV)
 end
 
-def modify_impl(type, user, group)
+def modify_impl(dn, subtype, attrtype, attrval)
 	Tempfile.open('oa') do |temp|
 		ldif = <<EOLdif
-dn: cn=#{group},ou=Group,#{LDAPBASE}
+dn: #{dn}
 changetype: modify
-#{type}: memberUid
-memberUid: #{user}
+#{subtype}: #{attrtype}
+#{attrtype}: #{attrval}
 EOLdif
 		temp.puts ldif
 		temp.flush
-		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
 		puts "###### LDIF file --- ######"
 		puts ldif
 		puts "###### --- LDIF file ######"
+		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
 		puts cmd
 		system cmd
 	end
 end
 
 def add_to_group(user, group)
-	modify_impl('add', user, group)
+	modify_impl("cn=#{group},ou=Group,#{LDAPBASE}", 'add', 'memberUid', user)
 end
 
 def remove_from_group(user, group)
-	modify_impl('delete', user, group)
+	modify_impl("cn=#{group},ou=Group,#{LDAPBASE}", 'delete', 'memberUid', user)
 end
 
-def change_shell(user, group)
-	modify_impl('replace', user, shell)
+def change_shell(user, shell)
+	modify_impl("uid=#{user},ou=People,#{LDAPBASE}", 'replace', 'loginShell', shell)
 end
 
-def show_help(command)
+def show_help(command=false)
 	if (command) then
 		case (command)
 		when :add_to_group
@@ -101,7 +101,7 @@ EOHelp
 	else
 		puts <<EOHelp
 The OA_ldapmodify script manages LDAP users and groups.
-You can specify one of sub commands: add, remove.
+You can specify one of sub commands: add, remove, chsh.
 For more details about these commands, see the help.
 
 EOHelp
@@ -122,6 +122,6 @@ when :remove_from_group
 when :change_shell
 	change_shell($config[:user], $config[:shell])
 else
-	puts $opts
+	show_help
 end
 
