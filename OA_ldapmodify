@@ -1,10 +1,11 @@
 #!/usr/bin/ruby -K
 
+require "tempfile"
 require "optparse"
 
 LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
 LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
-LDAPOPTIONS = "-vW -b #{LDAPBASE} -D #{LDAPMANAGER}"
+LDAPOPTIONS = "-vW -D #{LDAPMANAGER}"
 
 $config = {}
 
@@ -41,16 +42,31 @@ if (!ARGV.empty?) then
 	opts.order!(ARGV)
 end
 
+def modify_impl(type, user, group)
+	Tempfile.open('oa') do |temp|
+		ldif = <<EOLdif
+dn: cn=#{group},ou=Group,#{LDAPBASE}
+changetype: modify
+#{type}: memberUid
+memberUid: #{user}
+EOLdif
+		temp.puts ldif
+		temp.flush
+		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
+		puts "### LDIF file ###"
+		puts ldif
+		puts "### LDIF file ###"
+		puts cmd
+		system cmd
+	end
+end
+
 def add_to_group(user, group)
-	cmd = %W{ldapsearch #{LDAPOPTIONS} "(cn=#{user})"}.join ' '
-	puts cmd
-	exec cmd
+	modify_impl('add', user, group)
 end
 
 def remove_by_group(user, group)
-	cmd = %W{ldapsearch #{LDAPOPTIONS} "(cn=#{user})"}.join ' '
-	puts cmd
-	exec cmd
+	modify_impl('delete', user, group)
 end
 
 case ($config[:command])
@@ -60,6 +76,9 @@ when :addtogroup
 when :removebygroup
 	p $config
 	remove_by_group($config[:user], $config[:group])
+when :changeshell
+	p $config
+	#change_shell($config[:user], $config[:shell])
 else
 	puts opts
 end
