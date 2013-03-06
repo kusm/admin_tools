@@ -5,24 +5,25 @@ require "optparse"
 
 LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
 LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
-LDAPOPTIONS = "-vW -D #{LDAPMANAGER}"
+LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 
 $config = {}
 
-opts = OptionParser.new
-opts.on('-c', '--command=COMMAND', "Subcommand: add, remove") do |command|
+$opts = OptionParser.new
+$opts.on('-c', '--command=COMMAND', "Sub command: add, remove") do |command|
 	set_mode command
 end
-opts.on('-g', '--group [GROUP_CN]', "Group to modify") do |group|
+$opts.on('-g', '--group=GROUP_CN', "Group to modify") do |group|
 	$config[:group] = group
 end
-opts.on('-u', '--user [USER_CN]', "User to add or remove") do |user|
+$opts.on('-u', '--user=UID', "User to add or remove") do |user|
 	$config[:user] = user
 end
-opts.on('-h', '--help', "Show this message") do |group|
-	puts "Manage LDAP group"
-	puts opts
-	exit
+$opts.on('-s', '--shell SHELL', "Login shell to change") do |shell|
+	$config[:shell] = shell
+end
+$opts.on('-h', '--help', "Show help message") do |group|
+	$config[:help] = true
 end 
 
 def set_mode(command)
@@ -31,15 +32,17 @@ def set_mode(command)
 		$config[:command] = :add_to_group
 	when 'remove', 'remove_from_group'
 		$config[:command] = :remove_from_group
+	when 'chsh', 'change_shell'
+		$config[:command] = :change_shell
 	else
 		puts "No such command #{command}"
 	end
 end
 
-opts.order!(ARGV)
+$opts.order!(ARGV)
 if (!ARGV.empty?) then
 	set_mode(ARGV.shift)
-	opts.order!(ARGV)
+	$opts.order!(ARGV)
 end
 
 def modify_impl(type, user, group)
@@ -53,9 +56,9 @@ EOLdif
 		temp.puts ldif
 		temp.flush
 		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
-		puts "### LDIF file ###"
+		puts "###### LDIF file --- ######"
 		puts ldif
-		puts "### LDIF file ###"
+		puts "###### --- LDIF file ######"
 		puts cmd
 		system cmd
 	end
@@ -69,17 +72,56 @@ def remove_from_group(user, group)
 	modify_impl('delete', user, group)
 end
 
+def change_shell(user, group)
+	modify_impl('replace', user, shell)
+end
+
+def show_help(command)
+	if (command) then
+		case (command)
+		when :add_to_group
+			puts <<EOHelp
+Usage: OA_ldapmodify add -u UID -g GROUP_CN
+The add command adds the user into the group.
+
+EOHelp
+		when :remove_from_group
+			puts <<EOHelp
+Usage: OA_ldapmodify remove -u UID -g GROUP_CN
+The remove command removes the user from the group.
+
+EOHelp
+		when :change_shell
+			puts <<EOHelp
+Usage: OA_ldapmodify chsh -u UID -s SHELL
+The chsh command changes the user's login shell to SHELL.
+
+EOHelp
+		end
+	else
+		puts <<EOHelp
+The OA_ldapmodify script manages LDAP users and groups.
+You can specify one of sub commands: add, remove.
+For more details about these commands, see the help.
+
+EOHelp
+		puts $opts
+	end
+end
+
+if ($config[:help]) then
+	show_help $config[:command]
+	exit
+end
+
 case ($config[:command])
 when :add_to_group
-	p $config
 	add_to_group($config[:user], $config[:group])
 when :remove_from_group
-	p $config
 	remove_from_group($config[:user], $config[:group])
-when :changeshell
-	p $config
-	#change_shell($config[:user], $config[:shell])
+when :change_shell
+	change_shell($config[:user], $config[:shell])
 else
-	puts opts
+	puts $opts
 end
 
