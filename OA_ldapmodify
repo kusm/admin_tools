@@ -1,0 +1,66 @@
+#!/usr/bin/ruby -K
+
+require "optparse"
+
+LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
+LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
+LDAPOPTIONS = "-vW -b #{LDAPBASE} -D #{LDAPMANAGER}"
+
+$config = {}
+
+opts = OptionParser.new
+opts.on('-c', '--command=COMMAND', "addtogroup, removebygroup") do |command|
+	set_mode command
+end
+opts.on('-g', '--group [GROUP_CN]', "Group to modify") do |group|
+	$config[:group] = group
+end
+opts.on('-u', '--user [USER_CN]', "User to add or remove") do |user|
+	$config[:user] = user
+end
+opts.on('-h', '--help', "Show this message") do |group|
+	puts "Manage LDAP group"
+	puts opts
+	exit
+end 
+
+def set_mode(command)
+	case (command)
+	when 'addtogroup'
+		$config[:command] = :addtogroup
+	when 'removebygroup'
+		$config[:command] = :removebygroup
+	else
+		puts "No such command #{command}"
+	end
+end
+
+opts.order!(ARGV)
+if (!ARGV.empty?) then
+	set_mode(ARGV.shift)
+	opts.order!(ARGV)
+end
+
+def add_to_group(user, group)
+	cmd = %W{ldapsearch #{LDAPOPTIONS} "(cn=#{user})"}.join ' '
+	puts cmd
+	exec cmd
+end
+
+def remove_by_group(user, group)
+	cmd = %W{ldapsearch #{LDAPOPTIONS} "(cn=#{user})"}.join ' '
+	puts cmd
+	exec cmd
+end
+
+case ($config[:command])
+when :addtogroup
+	p $config
+	add_to_group($config[:user], $config[:group])
+when :removebygroup
+	p $config
+	remove_by_group($config[:user], $config[:group])
+else
+	puts opts
+end
+
