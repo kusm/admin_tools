@@ -52,21 +52,22 @@ if (!ARGV.empty?) then
 end
 
 def modify_impl(dn, subtype, attrtype, attrval)
+	ldif = <<-EOLdif.gsub(/^\s*/, '')
+	dn: #{dn}
+	changetype: modify
+	#{subtype}: #{attrtype}
+	#{attrtype}: #{attrval}
+	EOLdif
+	if ($config[:ldif]) then
+		puts ldif
+		puts "\n"
+		return
+	end
 	Tempfile.open('oa') do |temp|
-		ldif = <<EOLdif
-dn: #{dn}
-changetype: modify
-#{subtype}: #{attrtype}
-#{attrtype}: #{attrval}
-EOLdif
 		temp.puts ldif
 		temp.flush
 		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
-		if ($config[:ldif]) then
-			puts ldif
-			puts "\n"
-			return
-		elsif ($config[:verbose]) then
+		if ($config[:verbose]) then
 			puts "###### LDIF file --- ######"
 			puts ldif
 			puts "###### --- LDIF file ######"
