@@ -45,9 +45,13 @@ def set_mode(command)
 	end
 end
 
+# --command
+# Parse abbreviated form for subcommand: "./OA_ldapmodify add ..."
 $opts.order!(ARGV)
 if (!ARGV.empty?) then
+	# Try to treat unknown option as a subcommand.
 	set_mode(ARGV.shift)
+	# Continue parsing
 	$opts.order!(ARGV)
 end
 
@@ -58,6 +62,7 @@ def modify_impl(dn, subtype, attrtype, attrval)
 	#{subtype}: #{attrtype}
 	#{attrtype}: #{attrval}
 	EOLdif
+	# --ldif-only
 	if ($config[:ldif]) then
 		puts ldif
 		puts "\n"
@@ -67,6 +72,7 @@ def modify_impl(dn, subtype, attrtype, attrval)
 		temp.puts ldif
 		temp.flush
 		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
+		# --verbose
 		if ($config[:verbose]) then
 			puts "###### LDIF file --- ######"
 			puts ldif
@@ -122,11 +128,13 @@ EOHelp
 	end
 end
 
+# --help
 if ($config[:help]) then
 	show_help $config[:command]
 	exit
 end
 
+# --command
 case ($config[:command])
 when :add_to_group
 	add_to_group($config[:user], $config[:group])
