@@ -10,7 +10,7 @@ LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 $config = {}
 
 $opts = OptionParser.new
-$opts.on('-c', '--command=COMMAND', "sub command: add, remove, chsh") do |command|
+$opts.on('-c', '--command=COMMAND', "sub command: add, remove, chsh, replace") do |command|
 	set_mode command
 end
 $opts.on('-g', '--group=GROUP_CN', "group to modify") do |group|
@@ -19,8 +19,17 @@ end
 $opts.on('-u', '--user=UID', "user to add or remove") do |user|
 	$config[:user] = user
 end
-$opts.on('-s', '--shell=SHELL', "login shell to change") do |shell|
-	$config[:shell] = shell
+$opts.on('-s', '--shell=SHELL', "login shell to replace by") do |shell|
+	$config[:loginShell] = shell
+end
+$opts.on('--cn=CN', "common name to replace by") do |cn|
+	$config[:cn] = cn
+end
+$opts.on('--sn=SN', "surname to replace by") do |sn|
+	$config[:sn] = sn
+end
+$opts.on('--given-name=GIVEN_NAME', "given name to replace by") do |given_name|
+	$config[:givenName] = given_name
 end
 $opts.on('-v', '--verbose', "increase verbosity") do
 	$config[:verbose] = true
@@ -38,8 +47,8 @@ def set_mode(command)
 		$config[:command] = :add_to_group
 	when 'remove', 'remove_from_group'
 		$config[:command] = :remove_from_group
-	when 'chsh', 'change_shell'
-		$config[:command] = :change_shell
+	when 'chsh', 'change_shell', 'replace'
+		$config[:command] = :replace
 	else
 		puts "No such command #{command}"
 	end
@@ -55,12 +64,12 @@ if (!ARGV.empty?) then
 	$opts.order!(ARGV)
 end
 
-def modify_impl(dn, subtype, attrtype, attrval)
+def modify_impl(dn, subtype, attr_type, attr_val)
 	ldif = <<-EOLdif.gsub(/^\s*/, '')
 	dn: #{dn}
 	changetype: modify
-	#{subtype}: #{attrtype}
-	#{attrtype}: #{attrval}
+	#{subtype}: #{attr_type}
+	#{attr_type}: #{attr_val}
 	EOLdif
 	# --ldif-only
 	if ($config[:ldif]) then
@@ -91,8 +100,8 @@ def remove_from_group(user, group)
 	modify_impl("cn=#{group},ou=Group,#{LDAPBASE}", 'delete', 'memberUid', user)
 end
 
-def change_shell(user, shell)
-	modify_impl("uid=#{user},ou=People,#{LDAPBASE}", 'replace', 'loginShell', shell)
+def replace(user, attr_type, attr_val)
+	modify_impl("uid=#{user},ou=People,#{LDAPBASE}", 'replace', attr_type, attr_val)
 end
 
 def show_help(command=false)
@@ -140,8 +149,10 @@ when :add_to_group
 	add_to_group($config[:user], $config[:group])
 when :remove_from_group
 	remove_from_group($config[:user], $config[:group])
-when :change_shell
-	change_shell($config[:user], $config[:shell])
+when :replace
+	[:loginShell, :cn, :sn, :givenName].each do |key|
+		replace($config[:user], key.to_s, $config[key]) if ($config.has_key? key)
+	end
 else
 	show_help
 end
