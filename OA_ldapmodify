@@ -7,6 +7,8 @@ LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
 LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
 LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 
+REPLACABLE_TYPES = [:cn, :sn, :givenName, :loginShell, :gecos]
+
 $config = {}
 
 $opts = OptionParser.new
@@ -30,6 +32,9 @@ $opts.on('--sn=SN', "surname to replace by") do |sn|
 end
 $opts.on('--given-name=GIVEN_NAME', "given name to replace by") do |given_name|
 	$config[:givenName] = given_name
+end
+$opts.on('--gecos=GECOS', "gecos to replace by") do |gecos|
+	$config[:gecos] = gecos
 end
 $opts.on('-v', '--verbose', "increase verbosity") do
 	$config[:verbose] = true
@@ -164,7 +169,7 @@ when :remove_from_group
 	remove_from_group($config[:user], $config[:group])
 when :replace
 	check_option :user
-	[:loginShell, :cn, :sn, :givenName].each do |key|
+	REPLACABLE_TYPES.each do |key|
 		replace($config[:user], key.to_s, $config[key]) if ($config.has_key? key)
 	end
 else
