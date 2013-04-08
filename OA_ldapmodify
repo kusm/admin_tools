@@ -10,22 +10,25 @@ LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 $config = {}
 
 $opts = OptionParser.new
-$opts.on('-c', '--command=COMMAND', "Sub command: add, remove, chsh") do |command|
+$opts.on('-c', '--command=COMMAND', "sub command: add, remove, chsh") do |command|
 	set_mode command
 end
-$opts.on('-g', '--group=GROUP_CN', "Group to modify") do |group|
+$opts.on('-g', '--group=GROUP_CN', "group to modify") do |group|
 	$config[:group] = group
 end
-$opts.on('-u', '--user=UID', "User to add or remove") do |user|
+$opts.on('-u', '--user=UID', "user to add or remove") do |user|
 	$config[:user] = user
 end
-$opts.on('-s', '--shell=SHELL', "Login shell to change") do |shell|
+$opts.on('-s', '--shell=SHELL', "login shell to change") do |shell|
 	$config[:shell] = shell
 end
-$opts.on('-v', '--verbose', "Increase verbosity") do
+$opts.on('-v', '--verbose', "increase verbosity") do
 	$config[:verbose] = true
 end
-$opts.on('-h', '--help', "Show help message") do |group|
+$opts.on('-l', '--ldif-only', "only output in LDIF file format") do
+	$config[:ldif] = true
+end
+$opts.on('-h', '--help', "show help message") do |group|
 	$config[:help] = true
 end 
 
@@ -59,7 +62,11 @@ EOLdif
 		temp.puts ldif
 		temp.flush
 		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
-		if ($config[:verbose]) then
+		if ($config[:ldif]) then
+			puts ldif
+			puts "\n"
+			return
+		elsif ($config[:verbose]) then
 			puts "###### LDIF file --- ######"
 			puts ldif
 			puts "###### --- LDIF file ######"
