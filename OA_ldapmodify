@@ -19,8 +19,11 @@ end
 $opts.on('-u', '--user=UID', "User to add or remove") do |user|
 	$config[:user] = user
 end
-$opts.on('-s', '--shell SHELL', "Login shell to change") do |shell|
+$opts.on('-s', '--shell=SHELL', "Login shell to change") do |shell|
 	$config[:shell] = shell
+end
+$opts.on('-v', '--verbose', "Increase verbosity") do
+	$config[:verbose] = true
 end
 $opts.on('-h', '--help', "Show help message") do |group|
 	$config[:help] = true
@@ -55,11 +58,13 @@ changetype: modify
 EOLdif
 		temp.puts ldif
 		temp.flush
-		puts "###### LDIF file --- ######"
-		puts ldif
-		puts "###### --- LDIF file ######"
 		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
-		puts cmd
+		if ($config[:verbose]) then
+			puts "###### LDIF file --- ######"
+			puts ldif
+			puts "###### --- LDIF file ######"
+			puts cmd
+		end
 		system cmd
 	end
 end
