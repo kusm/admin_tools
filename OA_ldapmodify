@@ -7,7 +7,7 @@ LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
 LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
 LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 
-REPLACABLE_TYPES = [:cn, :sn, :givenName, :loginShell, :gecos]
+REPLACABLE_TYPES = [:cn, :sn, :givenName, :loginShell, :gecos, :displayName]
 
 $config = {}
 
@@ -35,6 +35,9 @@ $opts.on('--given-name=GIVEN_NAME', "given name to replace by") do |given_name|
 end
 $opts.on('--gecos=GECOS', "gecos to replace by") do |gecos|
 	$config[:gecos] = gecos
+end
+$opts.on('--display-name=DISPLAY_NAME', "display name to replace by") do |display_name|
+	$config[:displayName] = display_name
 end
 $opts.on('-v', '--verbose', "increase verbosity") do
 	$config[:verbose] = true
