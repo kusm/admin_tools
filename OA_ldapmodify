@@ -8,7 +8,7 @@ LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
 LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
 LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 
-REPLACABLE_TYPES = [:cn, :sn, :givenName, :loginShell, :gecos, :displayName]
+REPLACEABLE_TYPES = [:cn, :sn, :givenName, :loginShell, :gecos, :displayName]
 
 $config = {}
 
@@ -176,7 +176,7 @@ when :remove_from_group
 	remove_from_group($config[:user], $config[:group])
 when :replace
 	check_option :user
-	REPLACABLE_TYPES.each do |key|
+	REPLACEABLE_TYPES.each do |key|
 		replace($config[:user], key.to_s, $config[key]) if ($config.has_key? key)
 	end
 else
