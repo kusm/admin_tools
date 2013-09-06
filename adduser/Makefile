@@ -6,3 +6,6 @@ secret: secret/ldap.manager.secret
 secret/ldap.manager.secret: secret/ldap.manager.secret.gpg
 	@[ -f secret/ldap.manager.secret ] || gpg secret/ldap.manager.secret.gpg
 
+clean:
+	git clean -fX .
+
