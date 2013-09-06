@@ -37,7 +37,7 @@ def read_manager_secret
   File.open(secret_file, 'r') do |f|
     manager_secret = f.read
   end
-  return manager_secret
+  return manager_secret.chomp
 end
 
 LDAP_MANAGER_SECRET = read_manager_secret
