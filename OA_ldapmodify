@@ -131,18 +131,24 @@ Usage: OA_ldapmodify remove -u UID -g GROUP_CN
 The remove command removes the user from the group.
 
 EOHelp
-		when :change_shell
+		when :replace
 			puts <<EOHelp
 Usage: OA_ldapmodify chsh -u UID -s SHELL
 The chsh command changes the user's login shell to SHELL.
 
+Usage: OA_ldapmodify replace -u UID [options]
+The replace command changes the user's attributes specified
+by options.
+
 EOHelp
+		puts $opts.to_s.split(/\n/).grep(/.*replace.*/).join("\n")
 		end
 	else
 		puts <<EOHelp
 The OA_ldapmodify script manages LDAP users and groups.
-You can specify one of sub commands: add, remove, chsh.
-For more details about these commands, see the help.
+You can specify one of sub commands: add, remove, chsh
+and replace. For more details about these commands,
+see the help.
 
 EOHelp
 		puts $opts
