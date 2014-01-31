@@ -77,7 +77,9 @@ if (!ARGV.empty?) then
 end
 
 def modify_impl(dn, subtype, attr_type, attr_val, ja = false)
-	ldif = <<-EOLdif.gsub(/^\s*/, '')
+	ldif = ''
+	ldif += "\# #{attr_type}: #{attr_val}\n" if $config[:verbose]
+	ldif += <<-EOLdif.gsub(/^\s*/, '')
 	dn: #{dn}
 	changetype: modify
 	#{subtype}: #{attr_type}#{ja ? ';lang-ja' : ''}
