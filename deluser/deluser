@@ -1,0 +1,110 @@
+#!/usr/bin/ruby -K
+
+require 'tempfile'
+require 'optparse'
+require 'base64'
+
+if not $DEBUG then
+	if `id -u` != 0 then
+		STDERR.puts "need root privilege!"
+		exit 1
+	end
+end
+
+LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
+LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
+LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
+
+$config = {}
+
+$opts = OptionParser.new
+$opts.on('-v', '--verbose', "increase verbosity") do
+	$config[:verbose] = true
+end
+$opts.on('-n', '--noop', "do nothing") do
+	$config[:noop] = true
+end
+$opts.on('-m', '--membership-only', "remove only memberships") do
+	$config[:membershiponly] = true
+end
+$opts.on('-u', '--user-only', "remove only the user") do
+	$config[:useronly] = true
+end
+$opts.on('-g', '--group-only', "remove only the group") do
+	$config[:grouponly] = true
+end
+$opts.on('-d', '--homedir-only', "remove only the home directory") do
+	$config[:homedironly] = true
+end
+$opts.on('-h', '--help', "show help message") do |group|
+	$config[:help] = true
+end 
+
+def set_uid(uid)
+	$config[:uid] = uid
+end
+
+# Parse the UID: "./deluser UID ..."
+$opts.order!(ARGV)
+if (!ARGV.empty?) then
+	# Try to treat unknown option as a subcommand.
+	set_uid(ARGV.shift)
+	# Continue parsing
+	$opts.order!(ARGV)
+end
+
+def modify_impl(dn, subtype, attr_type, attr_val, ja = false)
+	ldif = ''
+	ldif += "\# #{attr_type}: #{attr_val}\n" if $config[:verbose]
+	ldif += <<-EOLdif.gsub(/^\s*/, '')
+	dn: #{dn}
+	changetype: modify
+	#{subtype}: #{attr_type}#{ja ? ';lang-ja' : ''}
+	#{attr_type}#{ja ? ';lang-ja:' : ''}: #{ja ? Base64.encode64(attr_val) : attr_val}
+	EOLdif
+	# --ldif-only
+	if ($config[:ldif]) then
+		puts ldif
+		puts "\n"
+		return
+	end
+	Tempfile.open('oa') do |temp|
+		temp.puts ldif
+		temp.flush
+		cmd = "ldapmodify #{LDAPOPTIONS} -f #{temp.path}"
+		# --verbose
+		if ($config[:verbose]) then
+			puts "###### LDIF file --- ######"
+			puts ldif
+			puts "###### --- LDIF file ######"
+			puts cmd
+		end
+		system cmd
+	end
+end
+
+def remove_from_group(user, group)
+	modify_impl("cn=#{group},ou=Group,#{LDAPBASE}", 'delete', 'memberUid', user)
+end
+
+def show_help
+	puts <<EOHelp
+The deluser script removes LDAP user of the system.
+It removes related data as shown below:
+  [membership] LDAP attribute memberUid=UID,
+  [   group  ] LDAP entry cn=UID,ou=Group,dc=...,
+  [   user   ] LDAP entry uid=UID,ou=People,dc=...,
+  [ home dir ] /home/UID/ (compressed as .tar.gz).
+
+EOHelp
+	puts $opts
+end
+
+# --help
+if ($config[:help]) then
+	show_help
+	exit
+end
+
+puts $config
+
