@@ -228,8 +228,8 @@ class UserAccount
     FileUtils.chmod("700".oct, [@home + "/Maildir/cur",
                                 @home + "/Maildir/new",
                                 @home + "/Maildir/tmp"])
-    prefs = open(@home + "/.thunderbird/default/prefs.js","w")
-    template = open(@home + "/.thunderbird/prefs.js.org","r")
+    prefs = open(@home + "/.icedove/default/prefs.js","w")
+    template = open(@home + "/.icedove/prefs.js.org","r")
     while line = template.gets
       line.gsub!("FULLNAME",@fullname)
       line.gsub!("UID",@uid)
@@ -237,7 +237,7 @@ class UserAccount
     end
     template.close
     FileUtils.chown_R(@uidNumber, @gidNumber, @home)
-    File.delete(@home + "/.thunderbird/prefs.js.org")
+    File.delete(@home + "/.icedove/prefs.js.org")
   end
   def createLDIF
     ## for Debug ###
