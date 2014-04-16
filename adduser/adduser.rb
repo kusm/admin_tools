@@ -3,7 +3,7 @@
 #
 # Author: Tomohiro Fukaya, Nao Sato, Youhei SASAKI
 # Contacts: <support@math.kyoto-u.ac.jp>
-# $Lastupdate: 2011/10/04 20:08:27$
+# $Lastupdate: 2014-03-27 18:50:20$
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,10 +21,10 @@
 #= require statement
 require 'shell'
 require 'fileutils'
-require 'sha1'
+require 'digest/sha1'
 require 'base64'
 require 'ldap'
-ADMIN = "/usr/local/admin/"
+ADMIN = "/home/uwabami/Sources/admin_tools/adduser/"
 HOME = "/home/"
 SKEL = ADMIN + "skel/"
 
@@ -149,8 +149,8 @@ class UserAccount
       when "-gakushin", "-tokuken", "-gcoeken", "-fellow",
         "-doctor", "-master", "-visitor",  "-gkyoin",
         "-jimushitsu", "-toshojimu", "-yomuin",
-        "-oa"
-        @ml.push arg.gsub("-","")
+        "-oa","-gakushin-pd"
+        @ml.push arg.gsub(/^-/,"")
       when "-uidNum"
         @uidNumber = ARGV.shift
       when "-gidNum"
@@ -218,9 +218,16 @@ class UserAccount
     end
     Dir.mkdir(@home, "755".oct)
     FileUtils.copy_entry(SKEL, @home)
-    FileUtils.chmod("2700".oct, [@home + "/Maildir/.Drafts", @home + "/Maildir/.Archives",
-                                 @home + "/Maildir/.Sent", @home + "/Maildir/.Junk", @home + "/Maildir/.Templates"])
-    FileUtils.chmod("700".oct, [@home + "/Maildir/cur", @home + "/Maildir/new", @home + "/Maildir/tmp"])
+    FileUtils.chmod("2700".oct, [@home + "/Maildir/.Drafts",
+                                 @home + "/Maildir/.Junk",
+                                 @home + "/Maildir/.Sent",
+                                 @home + "/Maildir/.Templates",
+                                 @home + "/Maildir/.Archives",
+                                 @home + "/Maildir/.Trash"
+                                ])
+    FileUtils.chmod("700".oct, [@home + "/Maildir/cur",
+                                @home + "/Maildir/new",
+                                @home + "/Maildir/tmp"])
     prefs = open(@home + "/.thunderbird/default/prefs.js","w")
     template = open(@home + "/.thunderbird/prefs.js.org","r")
     while line = template.gets
@@ -232,7 +239,7 @@ class UserAccount
     FileUtils.chown_R(@uidNumber, @gidNumber, @home)
     File.delete(@home + "/.thunderbird/prefs.js.org")
   end
-  def createLDIF 
+  def createLDIF
     ## for Debug ###
     file = open(@uid+".ldif","w")
     #User dn
@@ -317,7 +324,7 @@ class UserAccount
       begin
         conn.add("cn="+@uid+",ou=Group,dc=math,dc=kyoto-u,dc=ac,dc=jp",\
           entryGroup)
-         File.delete(ADMIN+@uid+".ldif")
+         # File.delete(ADMIN+@uid+".ldif")
       rescue LDAP::ResultError
         conn.perror("add")
         printf "Error:ldapadd. See %s.ldif\n", @uid
@@ -330,11 +337,19 @@ class UserAccount
   end
 end
 user = UserAccount.new
+puts "check user"
 user.checkuser
+puts "set password"
 user.setpass
+puts "create LDIF file"
 user.createLDIF
+puts "check $HOME"
 user.checkhome
+puts "add LDIF"
 user.ldapadd
+puts "make $HOME"
 user.makehome
+puts "output password file"
 user.outpass
+puts "add ml"
 user.addml
