@@ -218,16 +218,23 @@ class UserAccount
     end
     Dir.mkdir(@home, "755".oct)
     FileUtils.copy_entry(SKEL, @home)
-    FileUtils.chmod("2700".oct, [@home + "/Maildir/.Drafts",
-                                 @home + "/Maildir/.Junk",
-                                 @home + "/Maildir/.Sent",
-                                 @home + "/Maildir/.Templates",
-                                 @home + "/Maildir/.Archives",
-                                 @home + "/Maildir/.Trash"
-                                ])
-    FileUtils.chmod("700".oct, [@home + "/Maildir/cur",
-                                @home + "/Maildir/new",
-                                @home + "/Maildir/tmp"])
+    [@home + "/Maildir/.Drafts",
+     @home + "/Maildir/.Junk",
+     @home + "/Maildir/.Sent",
+     @home + "/Maildir/.Templates",
+     @home + "/Maildir/.Archives",
+     @home + "/Maildir/.Trash"
+    ].each do |newdir|
+      Dir.mkdir newdir
+      FileUtils.chmod "2700".oct, newdir
+    end
+    [@home + "/Maildir/cur",
+     @home + "/Maildir/new",
+     @home + "/Maildir/tmp"
+    ].each do |newdir|
+      Dir.mkdir newdir
+      FileUtils.chmod "700".oct, newdir
+    end
     prefs = open(@home + "/.icedove/default/prefs.js","w")
     template = open(@home + "/.icedove/prefs.js.org","r")
     while line = template.gets
