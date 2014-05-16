@@ -71,13 +71,18 @@ It removes related data as shown below:
   [membership] LDAP attribute memberUid=UID,
   [   group  ] LDAP entry cn=UID,ou=Group,dc=...,
   [   user   ] LDAP entry uid=UID,ou=People,dc=...,
-  [ home dir ] /home/UID/ (compressed as .tar.gz).
+  [ home dir ] /home/UID/ (compressed as .tar.xz).
 
 EOHelp
 
 	def initialize
 		@user = nil
-		@config = {}
+		@config = {
+			:remove_user => true,
+			:remove_group => true,
+			:remove_homedir => true,
+			:remove_membership => true
+		}
 		@opts = OptionParser.new
 		@opts.on('-v', '--verbose', "increase verbosity") do
 			@config[:verbose] = true
@@ -85,19 +90,19 @@ EOHelp
 		@opts.on('-n', '--noop', "do nothing") do
 			@config[:noop] = true
 		end
-		@opts.on('-m', '--membership-only', "remove only memberships") do
-			@config[:membershiponly] = true
+		@opts.on('-m', '--[no-]membership', TrueClass, "remove memberships (default: true)") do |membership|
+			@config[:remove_membership] = membership
 		end
-		@opts.on('-u', '--user-only', "remove only the user") do
-			@config[:useronly] = true
+		@opts.on('-u', '--[no-]user', TrueClass, "remove the user (default: true)") do |user|
+			@config[:remove_user] = user
 		end
-		@opts.on('-g', '--group-only', "remove only the group") do
-			@config[:grouponly] = true
+		@opts.on('-g', '--[no-]group', TrueClass, "remove the group (default: true)") do |group|
+			@config[:remove_group] = group
 		end
-		@opts.on('-d', '--homedir-only', "remove only the home directory") do
-			@config[:homedironly] = true
+		@opts.on('-d', '--[no-]homedir', TrueClass, "remove the home directory (default: true)") do |homedir|
+			@config[:remove_homedir] = homedir
 		end
-		@opts.on('-h', '--help', "show help message") do |group|
+		@opts.on('-h', '--help', "show help message") do
 			@config[:help] = true
 		end 
 	end
@@ -119,6 +124,12 @@ EOHelp
 			show_help
 			exit
 		end
+		# TODO: compress_homedir
+		@user.groups.each do |group|
+			remove_membership(group.cn, @user.uid)
+		end
+		remove_group(@user.primary_group.cn)
+		remove_user(@user.uid)
 		debug if $DEBUG
 	end
 
@@ -135,6 +146,46 @@ EOHelp
 		if (uid && User.exists?(uid)) then
 			@user = User.find(uid)
 		end
+	end
+
+	private
+	def compress_homedir(uid)
+		# TODO: tar.xz
+	end
+
+	private
+	def remove_user(uid)
+		return if @config[:noop]
+		return unless (@config[:remove_user])
+		return unless (User.exists?(uid))
+		User.destroy(uid)
+		puts "Removed the user #{uid}" if @config[:verbose]
+	end
+
+	private
+	def remove_group(cn)
+		return if @config[:noop]
+		return unless (@config[:remove_group])
+		return unless (Group.exists?(cn))
+		Group.destroy(cn)
+		puts "Removed the group #{cn}" if @config[:verbose]
+	end
+
+	private
+	def remove_membership(cn, uid)
+		return if @config[:noop]
+		return unless (@config[:remove_membership])
+		return unless (Group.exists?(cn))
+		group = Group.find(cn)
+		memberUids = group.memberUid
+		memberUids.delete(uid)
+		group.memberUid = memberUids # call setter in order to overwrite
+		unless group.save
+			STDERR.puts group.errors.full_message
+			puts group if @config[:verbose]
+			exit 1
+		end
+		puts "Removed #{uid} from #{cn}" if @config[:verbose]
 	end
 
 	def show_help
