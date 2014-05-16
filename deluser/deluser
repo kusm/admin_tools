@@ -1,20 +1,34 @@
-#!/usr/bin/ruby -K
+#!/usr/bin/ruby
 
 require 'optparse'
+require 'io/console'
 require 'active_ldap'
 #require 'base64'
 
 if not $DEBUG then
 	if `id -u` != 0 then
-		STDERR.puts "need root privilege!"
+		STDERR.puts 'need root privilege!'
 		exit 1
 	end
 end
 
+ActiveLdap::Base.setup_connection(
+	:host => 'localhost',
+	:port => 389,
+	:base => 'dc=math,dc=kyoto-u,dc=ac,dc=jp',
+	:bind_dn => 'cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp',
+	:password_block => Proc.new {
+		# TODO: read from "ldapmanager.secret.txt"
+		puts "Manager password:"
+		STDIN.noecho(&:gets).chomp
+	}
+)
+
+class User < ActiveLdap::Base
+	ldap_mapping :dn_attribute => 'uid', :prefix => 'ou=People', :classes => ['inetOrgPerson', 'posixAccount']
+end
+
 class Deluser
-	LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
-	LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
-	LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 	HELP = <<EOHelp
 The deluser script removes LDAP user of the system.
 It removes related data as shown below:
@@ -26,6 +40,7 @@ It removes related data as shown below:
 EOHelp
 
 	def initialize
+		@user = nil
 		@config = {}
 		@opts = OptionParser.new
 		@opts.on('-v', '--verbose', "increase verbosity") do
@@ -68,13 +83,20 @@ EOHelp
 			show_help
 			exit
 		end
-		if ($DEBUG) then
-			puts @config
-		end
+		debug if $DEBUG
 	end
 
+	private
+	def debug
+		puts @config
+		puts @user
+	end
+
+	private
 	def set_uid(uid)
-		@config[:uid] = uid
+		if (uid && User.exists?(uid)) then
+			@user = User.find(uid)
+		end
 	end
 
 	def show_help
