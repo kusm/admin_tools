@@ -2,6 +2,7 @@
 
 require 'optparse'
 require 'io/console'
+require 'open3'
 require 'active_ldap'
 #require 'base64'
 
@@ -124,7 +125,8 @@ EOHelp
 			show_help
 			exit
 		end
-		# TODO: compress_homedir
+		compress_homedir(@user.uid)
+		## TODO: rm -rf /home/#{uid}
 		@user.groups.each do |group|
 			remove_membership(group.cn, @user.uid)
 		end
@@ -150,7 +152,17 @@ EOHelp
 
 	private
 	def compress_homedir(uid)
-		# TODO: tar.xz
+		return if @config[:noop]
+		return unless (@config[:remove_homedir])
+		return unless (Dir.exists?("/home/#{uid}"))
+		tarxzfile = "/home/#{uid}.tar.xz"
+		Open3.popen3("tar cJvf #{tarxzfile} #{uid}", :chdir => "/home") do |i, o, err, t|
+			tar_error = err.read
+			unless (tar_error.empty?) then
+				STDERR.puts tar_error
+				raise "Failed to create #{tarxzfile}" 
+			end
+		end
 	end
 
 	private
