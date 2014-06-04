@@ -66,9 +66,10 @@ class Group < ActiveLdap::Base
 end
 
 class Deluser
+	TARDIR = '/home.backup/expired'
 	HELP = <<EOHelp
 The deluser script removes LDAP user of the system.
-First, it compresses the user's home directory, if possible.
+First, it archives the user's home directory, if possible.
 Next, it removes related data as shown below:
   [membership] LDAP attribute memberUid=UID,
   [   group  ] LDAP entry cn=UID,ou=Group,dc=...,
@@ -79,9 +80,9 @@ EOHelp
 	def initialize
 		@user = nil
 		@config = {
+			:archive_homedir => true,
 			:remove_user => true,
 			:remove_group => true,
-			:remove_homedir => true,
 			:remove_membership => true
 		}
 		@opts = OptionParser.new
@@ -100,8 +101,8 @@ EOHelp
 		@opts.on('-g', '--[no-]group', TrueClass, "remove the group (default: true)") do |group|
 			@config[:remove_group] = group
 		end
-		@opts.on('-d', '--[no-]homedir', TrueClass, "remove the home directory (default: true)") do |homedir|
-			@config[:remove_homedir] = homedir
+		@opts.on('-d', '--[no-]homedir', TrueClass, "archive the home directory (default: true)") do |homedir|
+			@config[:archive_homedir] = homedir
 		end
 		@opts.on('-h', '--help', "show help message") do
 			@config[:help] = true
@@ -125,7 +126,7 @@ EOHelp
 			show_help
 			exit
 		end
-		compress_homedir(@user.uid)
+		archive_homedir(@user.uid)
 		## TODO: rm -rf /home/#{uid}
 		@user.groups.each do |group|
 			remove_membership(group.cn, @user.uid)
@@ -151,16 +152,16 @@ EOHelp
 	end
 
 	private
-	def compress_homedir(uid)
+	def archive_homedir(uid)
 		return if @config[:noop]
-		return unless (@config[:remove_homedir])
+		return unless (@config[:archive_homedir])
 		return unless (Dir.exists?("/home/#{uid}"))
-		targzfile = "/home/#{uid}.tar.gz"
-		Open3.popen3("tar czvf #{targzfile} #{uid}", :chdir => "/home") do |i, o, err, t|
+		tarfile = "#{TARDIR}/#{uid}.tar"
+		Open3.popen3("tar cvf #{tarfile} #{uid}", :chdir => "/home") do |i, o, err, t|
 			tar_error = err.read
 			unless (tar_error.empty?) then
 				STDERR.puts tar_error
-				raise "Failed to create #{targzfile}"
+				raise "Failed to create #{tarfile}"
 			end
 		end
 	end
