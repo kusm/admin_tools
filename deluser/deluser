@@ -126,7 +126,7 @@ EOHelp
 
 	def main
 		# --help
-		if (@config[:help]) then
+		if (@config[:help] || @user == nil) then
 			show_help
 			exit
 		end
