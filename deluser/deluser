@@ -21,8 +21,9 @@ ActiveLdap::Base.setup_connection(
 	:password_block => Proc.new {
 		password = ''
 		Dir.chdir(File.expand_path('../', __FILE__)) do
-			system("make secret")
-			password = File.open("secret/ldap.manager.secret", 'r').read.chomp
+			secret_file = "secret/ldap.manager.secret"
+			system("make secret") unless File.exists?(secret_file)
+			password = File.open(secret_file, 'r').read.chomp
 		end
 		password
 	}
