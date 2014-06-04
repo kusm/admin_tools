@@ -19,15 +19,13 @@ ActiveLdap::Base.setup_connection(
 	:base => 'dc=math,dc=kyoto-u,dc=ac,dc=jp',
 	:bind_dn => 'cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp',
 	:password_block => Proc.new {
-		## TODO: read from "ldapmanager.secret.txt"
-		#password = ''
-		#Dir.chdir(File.expand_path('../', __FILE__)) do
-		#	system("make secret")
-		#	password = File.open("secret/ldap.manager.secret", 'r').read.chomp
-		#end
-		#return password
-		puts "Manager password:"
-		STDIN.noecho(&:gets).chomp
+		# TODO: read from "ldapmanager.secret.txt"
+		password = ''
+		Dir.chdir(File.expand_path('../', __FILE__)) do
+			system("make secret")
+			password = File.open("secret/ldap.manager.secret", 'r').read.chomp
+		end
+		password
 	}
 )
 
