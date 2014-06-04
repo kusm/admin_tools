@@ -170,6 +170,7 @@ EOHelp
 				raise "Failed to create #{tarfile}"
 			end
 		end
+		puts "Archived the home directory to #{tarfile}" if @config[:verbose]
 	end
 
 	private
