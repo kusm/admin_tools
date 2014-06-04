@@ -160,14 +160,18 @@ EOHelp
 		return unless (@config[:archive_homedir])
 		return unless (Dir.exists?("/home/#{uid}"))
 		tarfile = "#{TARDIR}/#{uid}.tar"
-		Open3.popen3("tar cvf #{tarfile} #{uid}", :chdir => "/home") do |i, o, err, t|
-			tar_error = err.read
-			unless (tar_error.empty?) then
-				STDERR.puts tar_error
-				raise "Failed to create #{tarfile}"
+		begin
+			command = "tar cf #{tarfile} #{uid}"
+			pid = spawn(command, :chdir => "/home")
+			Process.detach(pid)
+			if @config[:verbose] then
+				puts "Started archiving the home directory"
+				puts "(pid #{pid})# #{command}"
 			end
+		rescue Errno::ENOENT => tar_error
+			STDERR.puts tar_error
+			raise "Failed to execute tar"
 		end
-		puts "Archived the home directory to #{tarfile}" if @config[:verbose]
 	end
 
 	private
