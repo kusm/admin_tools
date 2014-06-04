@@ -70,6 +70,7 @@ class Group < ActiveLdap::Base
 end
 
 class Deluser
+	EXPIRED_LIST = '/home/expired_users'
 	TARDIR = '/home.backup/expired'
 	HELP = <<EOHelp
 The deluser script removes LDAP user of the system.
@@ -130,12 +131,14 @@ EOHelp
 			show_help
 			exit
 		end
-		archive_homedir(@user.uid)
+		uid = @user.uid
+		archive_homedir(uid)
 		@user.groups.each do |group|
-			remove_membership(group.cn, @user.uid)
+			remove_membership(group.cn, uid)
 		end
 		remove_group(@user.primary_group.cn)
-		remove_user(@user.uid)
+		remove_user(uid)
+		expire(uid)
 	end
 
 	private
@@ -203,6 +206,13 @@ EOHelp
 			exit 1
 		end
 		puts "Removed #{uid} from #{cn}" if @config[:verbose]
+	end
+
+	private
+	def expire(uid)
+		File.open(EXPIRED_LIST, 'a') do |f|
+			f.puts(uid)
+		end
 	end
 
 	def show_help
