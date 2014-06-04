@@ -19,7 +19,6 @@ ActiveLdap::Base.setup_connection(
 	:base => 'dc=math,dc=kyoto-u,dc=ac,dc=jp',
 	:bind_dn => 'cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp',
 	:password_block => Proc.new {
-		# TODO: read from "ldapmanager.secret.txt"
 		password = ''
 		Dir.chdir(File.expand_path('../', __FILE__)) do
 			system("make secret")
@@ -131,7 +130,6 @@ EOHelp
 			exit
 		end
 		archive_homedir(@user.uid)
-		## TODO: rm -rf /home/#{uid}
 		@user.groups.each do |group|
 			remove_membership(group.cn, @user.uid)
 		end
