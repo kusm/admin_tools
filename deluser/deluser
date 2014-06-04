@@ -136,15 +136,11 @@ EOHelp
 		end
 		remove_group(@user.primary_group.cn)
 		remove_user(@user.uid)
-		debug if $DEBUG
 	end
 
 	private
 	def debug
-		puts @config
-		#puts @user
-		puts @user.primary_group.cn
-		puts(@user.groups.collect do |g| g.cn end)
+		exit
 	end
 
 	private
