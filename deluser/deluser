@@ -68,11 +68,11 @@ end
 class Deluser
 	HELP = <<EOHelp
 The deluser script removes LDAP user of the system.
-It removes related data as shown below:
+First, it compresses the user's home directory, if possible.
+Next, it removes related data as shown below:
   [membership] LDAP attribute memberUid=UID,
   [   group  ] LDAP entry cn=UID,ou=Group,dc=...,
-  [   user   ] LDAP entry uid=UID,ou=People,dc=...,
-  [ home dir ] /home/UID/ (compressed as .tar.xz).
+  [   user   ] LDAP entry uid=UID,ou=People,dc=....
 
 EOHelp
 
@@ -155,12 +155,12 @@ EOHelp
 		return if @config[:noop]
 		return unless (@config[:remove_homedir])
 		return unless (Dir.exists?("/home/#{uid}"))
-		tarxzfile = "/home/#{uid}.tar.xz"
-		Open3.popen3("tar cJvf #{tarxzfile} #{uid}", :chdir => "/home") do |i, o, err, t|
+		targzfile = "/home/#{uid}.tar.gz"
+		Open3.popen3("tar czvf #{targzfile} #{uid}", :chdir => "/home") do |i, o, err, t|
 			tar_error = err.read
 			unless (tar_error.empty?) then
 				STDERR.puts tar_error
-				raise "Failed to create #{tarxzfile}" 
+				raise "Failed to create #{targzfile}"
 			end
 		end
 	end
