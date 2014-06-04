@@ -7,7 +7,7 @@ require 'active_ldap'
 #require 'base64'
 
 if not $DEBUG then
-	if `id -u` != 0 then
+	if `id -u`.to_i != 0 then
 		STDERR.puts 'need root privilege!'
 		exit 1
 	end
