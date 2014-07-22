@@ -24,9 +24,12 @@ require 'fileutils'
 require 'digest/sha1'
 require 'base64'
 require 'ldap'
-ADMIN = "/home/uwabami/Sources/admin_tools/adduser/"
+## FIXME: adduser スクリプトと同じディレクトリでよいように思う
+ADMIN = "/home/uda/ldap/admin_tools/manageuser/"
 HOME = "/home/"
 SKEL = ADMIN + "skel/"
+
+## TODO: root 権限で実行されているかどうかの確認
 
 def read_admin_secret
   secret_file = File.expand_path(File.dirname(__FILE__), './secret/ldap.admin.secret')
@@ -207,6 +210,7 @@ class UserAccount
     end
     texput.close
     system("/usr/bin/pdflatex", "texput.tex")
+    ## root:Admin にする．ここで root 権限を使うため，root でない場合以降の処理が実行されない．
     File.chown("0".to_i,"1100".to_i, "texput.pdf")
     File.chmod("640".oct, "texput.pdf")
     File.unlink("texput.aux","texput.log","texput.tex")
