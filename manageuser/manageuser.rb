@@ -1,10 +1,29 @@
 
-ActiveLdap::Base.setup_connection(
-	:host => 'localhost',
-	:port => 389,
-	:base => 'dc=math,dc=kyoto-u,dc=ac,dc=jp',
-	:bind_dn => 'cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp',
-	:password_block => Proc.new {
+module ManageUser
+	EXPIRED_LIST = '/home/expired_users'
+	TARDIR = '/home.backup/expired'
+
+	def self.need_root_or_exit
+		if `id -u`.to_i != 0 then
+			STDERR.puts 'need root privilege!'
+			exit 1
+		end
+	end
+
+	def self.setup_connection
+		ActiveLdap::Base.setup_connection(
+			:host => 'localhost',
+			:port => 389,
+			:base => 'dc=math,dc=kyoto-u,dc=ac,dc=jp',
+			:bind_dn => 'cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp',
+			:password_block => Proc.new {
+				get_password_from_secret
+			}
+		)
+	end
+
+	private
+	def self.get_password_from_secret
 		password = ''
 		Dir.chdir(File.expand_path('../', __FILE__)) do
 			secret_file = "secret/ldap.admin.secret"
@@ -12,8 +31,13 @@ ActiveLdap::Base.setup_connection(
 			password = File.open(secret_file, 'r').read.chomp
 		end
 		password
-	}
-)
+	end
+
+end
+
+## Module の下に User/Group をつっこむとよー分からんが NameError はかれる．
+## たぶん Active なんたらにありがちなメタプログラミングのせいでおきるバグ
+## だと思う．しょうがないのでグローバルに置いておく．
 
 class User < ActiveLdap::Base
 	# uid=$(uid),ou=People,dc=math,...

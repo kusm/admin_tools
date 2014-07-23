@@ -6,18 +6,13 @@ require 'open3'
 require 'active_ldap'
 #require 'base64'
 
-if not $DEBUG then
-	if `id -u`.to_i != 0 then
-		STDERR.puts 'need root privilege!'
-		exit 1
-	end
-end
+require './manageuser.rb'
+ManageUser.need_root_or_exit if not $DEBUG
+ManageUser.setup_connection
 
-require './ldap_models.rb'
+class DelUser
+	include ManageUser
 
-class Deluser
-	EXPIRED_LIST = '/home/expired_users'
-	TARDIR = '/home.backup/expired'
 	HELP = <<EOHelp
 The deluser script removes LDAP user of the system.
 First, it archives the user's home directory, if possible.
@@ -168,7 +163,7 @@ EOHelp
 	end
 end
 
-deluser = Deluser.new
+deluser = DelUser.new
 deluser.parse_options!(ARGV)
 deluser.main
 
