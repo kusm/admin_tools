@@ -1,4 +1,6 @@
 
+require 'active_ldap'
+
 module ManageUser
 	EXPIRED_LIST = '/home/expired_users'
 	TARDIR = '/home.backup/expired'

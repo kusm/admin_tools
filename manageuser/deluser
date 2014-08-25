@@ -2,9 +2,6 @@
 
 require 'optparse'
 require 'io/console'
-require 'open3'
-require 'active_ldap'
-#require 'base64'
 
 require './manageuser.rb'
 ManageUser.need_root_or_exit if not $DEBUG
