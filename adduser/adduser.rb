@@ -28,25 +28,25 @@ ADMIN = "/home/uwabami/Sources/admin_tools/adduser/"
 HOME = "/home/"
 SKEL = ADMIN + "skel/"
 
-def read_manager_secret
-  secret_file = File.expand_path(File.dirname(__FILE__), './secret/ldap.manager.secret')
-  manager_secret = nil
+def read_admin_secret
+  secret_file = File.expand_path(File.dirname(__FILE__), './secret/ldap.admin.secret')
+  admin_secret = nil
   unless File.exists?(secret_file) then
     system('make secret')
   end
   File.open(secret_file, 'r') do |f|
-    manager_secret = f.read
+    admin_secret = f.read
   end
-  return manager_secret.chomp
+  return admin_secret.chomp
 end
 
-LDAP_MANAGER_SECRET = read_manager_secret
+LDAP_ADMIN_SECRET = read_admin_secret
 
 def checkldapuser(uid)
   @uid = uid.to_s
   conn = LDAP::SSLConn.new('smaux.math.kyoto-u.ac.jp',636)
   conn.set_option(LDAP::LDAP_OPT_PROTOCOL_VERSION,3)
-  conn.bind("cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_MANAGER_SECRET)
+  conn.bind("cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_ADMIN_SECRET)
   dn = "uid="+ @uid + ",ou=People,dc=math,dc=kyoto-u,dc=ac,dc=jp"
   begin
     conn.search(dn,LDAP::LDAP_SCOPE_SUBTREE, "(uidNumber=*)"){|entry|}
@@ -60,7 +60,7 @@ def getLatestUid
   uidlist = Array.new
   conn = LDAP::SSLConn.new('smaux.math.kyoto-u.ac.jp',636)
   conn.set_option(LDAP::LDAP_OPT_PROTOCOL_VERSION,3)
-  conn.bind("cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_MANAGER_SECRET)
+  conn.bind("cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_ADMIN_SECRET)
   people = "ou=People,dc=math,dc=kyoto-u,dc=ac,dc=jp"
   conn.search(people,LDAP::LDAP_SCOPE_SUBTREE, "(uidNumber=*)"){|entry|
     uidlist.push(entry['uidNumber'].first.to_i)
@@ -75,7 +75,7 @@ def getLatestGid
   gidlist = Array.new
   conn = LDAP::SSLConn.new('smaux.math.kyoto-u.ac.jp',636)
   conn.set_option(LDAP::LDAP_OPT_PROTOCOL_VERSION,3)
-  conn.bind("cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_MANAGER_SECRET)
+  conn.bind("cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_ADMIN_SECRET)
   group = "ou=Group,dc=math,dc=kyoto-u,dc=ac,dc=jp"
   conn.search(group,LDAP::LDAP_SCOPE_SUBTREE, "(gidNumber=*)"){|entry|
     gidlist.push(entry['gidNumber'].first.to_i)
@@ -286,7 +286,7 @@ class UserAccount
     unless @ml.size == 0
       conn = LDAP::SSLConn.new('smaux.math.kyoto-u.ac.jp',636)
       conn.set_option(LDAP::LDAP_OPT_PROTOCOL_VERSION,3)
-      conn.bind("cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_MANAGER_SECRET)
+      conn.bind("cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_ADMIN_SECRET)
       @ml.each do |ml|
         ml_entry = [LDAP.mod(LDAP::LDAP_MOD_ADD, 'memberUid', ["#{@uid}"]),]
         group = "cn=#{ml},ou=Group,dc=math,dc=kyoto-u,dc=ac,dc=jp"
@@ -297,7 +297,7 @@ class UserAccount
   def ldapadd
     conn = LDAP::SSLConn.new('smaux.math.kyoto-u.ac.jp',636)
     conn.set_option(LDAP::LDAP_OPT_PROTOCOL_VERSION,3)
-    conn.bind("cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_MANAGER_SECRET)
+    conn.bind("cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp", LDAP_ADMIN_SECRET)
     dn = "uid="+ @uid + ",ou=People,dc=math,dc=kyoto-u,dc=ac,dc=jp"
     entryPeople = [
       LDAP.mod(LDAP::LDAP_MOD_ADD,'objectclass',\
