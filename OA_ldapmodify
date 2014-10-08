@@ -5,8 +5,8 @@ require 'optparse'
 require 'base64'
 
 LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
-LDAPADMIN = "cn=admin,#{LDAPBASE}"
-LDAPOPTIONS = "-W -D #{LDAPADMIN}"
+LDAPMANAGER = "cn=Manager,#{LDAPBASE}"
+LDAPOPTIONS = "-W -D #{LDAPMANAGER}"
 
 REPLACEABLE_TYPES = [:cn, :sn, :givenName, :loginShell, :gecos, :displayName]
 

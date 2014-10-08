@@ -1,10 +1,10 @@
 all: secret
 
-secret: secret/ldap.admin.secret
+secret: secret/ldap.manager.secret
 	chmod 600 secret/*.secret
 
-secret/ldap.admin.secret: secret/ldap.admin.secret.gpg
-	@[ -f secret/ldap.admin.secret ] || gpg secret/ldap.admin.secret.gpg
+secret/ldap.manager.secret: secret/ldap.manager.secret.gpg
+	@[ -f secret/ldap.manager.secret ] || gpg secret/ldap.manager.secret.gpg
 
 clean:
 	git clean -fX .
