@@ -8,4 +8,4 @@ secret/ldap.manager.secret: secret/ldap.manager.secret.gpg
 
 clean:
 	git clean -fX .
-
+	rm -f *.aux *.log
