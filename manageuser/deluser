@@ -8,9 +8,9 @@ ManageUser.need_root_or_exit if not $DEBUG
 ManageUser.setup_connection
 
 class DelUser
-	include ManageUser
+  include ManageUser
 
-	HELP = <<EOHelp
+  HELP = <<EOHelp
 The deluser script removes LDAP user of the system.
 First, it archives the user's home directory, if possible.
 Next, it removes related data as shown below:
@@ -20,144 +20,144 @@ Next, it removes related data as shown below:
 
 EOHelp
 
-	def initialize
-		@user = nil
-		@config = {
-			:archive_homedir => true,
-			:remove_user => true,
-			:remove_group => true,
-			:remove_membership => true
-		}
-		@opts = OptionParser.new
-		@opts.on('-v', '--verbose', "increase verbosity") do
-			@config[:verbose] = true
-		end
-		@opts.on('-n', '--noop', "do nothing") do
-			@config[:noop] = true
-		end
-		@opts.on('-m', '--[no-]membership', TrueClass, "remove memberships (default: true)") do |membership|
-			@config[:remove_membership] = membership
-		end
-		@opts.on('-u', '--[no-]user', TrueClass, "remove the user (default: true)") do |user|
-			@config[:remove_user] = user
-		end
-		@opts.on('-g', '--[no-]group', TrueClass, "remove the group (default: true)") do |group|
-			@config[:remove_group] = group
-		end
-		@opts.on('-d', '--[no-]homedir', TrueClass, "archive the home directory (default: true)") do |homedir|
-			@config[:archive_homedir] = homedir
-		end
-		@opts.on('-h', '--help', "show help message") do
-			@config[:help] = true
-		end 
-	end
+  def initialize
+    @user = nil
+    @config = {
+      :archive_homedir => true,
+      :remove_user => true,
+      :remove_group => true,
+      :remove_membership => true
+    }
+    @opts = OptionParser.new
+    @opts.on('-v', '--verbose', "increase verbosity") do
+      @config[:verbose] = true
+    end
+    @opts.on('-n', '--noop', "do nothing") do
+      @config[:noop] = true
+    end
+    @opts.on('-m', '--[no-]membership', TrueClass, "remove memberships (default: true)") do |membership|
+      @config[:remove_membership] = membership
+    end
+    @opts.on('-u', '--[no-]user', TrueClass, "remove the user (default: true)") do |user|
+      @config[:remove_user] = user
+    end
+    @opts.on('-g', '--[no-]group', TrueClass, "remove the group (default: true)") do |group|
+      @config[:remove_group] = group
+    end
+    @opts.on('-d', '--[no-]homedir', TrueClass, "archive the home directory (default: true)") do |homedir|
+      @config[:archive_homedir] = homedir
+    end
+    @opts.on('-h', '--help', "show help message") do
+      @config[:help] = true
+    end 
+  end
 
-	# Parse the UID: "./deluser UID ..."
-	def parse_options!(argv)
-		@opts.order!(argv)
-		if (!argv.empty?) then
-			# Try to treat unknown option as a UID.
-			set_uid(argv.shift)
-			# Continue parsing
-			@opts.order!(argv)
-		end
-	end
+  # Parse the UID: "./deluser UID ..."
+  def parse_options!(argv)
+    @opts.order!(argv)
+    if (!argv.empty?) then
+      # Try to treat unknown option as a UID.
+      set_uid(argv.shift)
+      # Continue parsing
+      @opts.order!(argv)
+    end
+  end
 
-	def main
-		# --help
-		if (@config[:help] || @user == nil) then
-			show_help
-			exit
-		end
-		uid = @user.uid
-		archive_homedir(uid)
-		@user.groups.each do |group|
-			remove_membership(group.cn, uid)
-		end
-		remove_group(@user.primary_group.cn)
-		remove_user(uid)
-		expire(uid)
-	end
+  def main
+    # --help
+    if (@config[:help] || @user == nil) then
+      show_help
+      exit
+    end
+    uid = @user.uid
+    archive_homedir(uid)
+    @user.groups.each do |group|
+      remove_membership(group.cn, uid)
+    end
+    remove_group(@user.primary_group.cn)
+    remove_user(uid)
+    expire(uid)
+  end
 
-	private
-	def debug
-		exit
-	end
+  private
+  def debug
+    exit
+  end
 
-	private
-	def set_uid(uid)
-		if (uid && User.exists?(uid)) then
-			@user = User.find(uid)
-		end
-	end
+  private
+  def set_uid(uid)
+    if (uid && User.exists?(uid)) then
+      @user = User.find(uid)
+    end
+  end
 
-	private
-	def archive_homedir(uid)
-		return if @config[:noop]
-		return unless (@config[:archive_homedir])
-		return unless (Dir.exists?("/home/#{uid}"))
-		tarfile = "#{TARDIR}/#{uid}.tar"
-		begin
-			command = "tar cf #{tarfile} #{uid}"
-			pid = spawn(command, :chdir => "/home")
-			Process.detach(pid)
-			if @config[:verbose] then
-				puts "Started archiving the home directory"
-				puts "(pid #{pid})# #{command}"
-			end
-		rescue Errno::ENOENT => tar_error
-			STDERR.puts tar_error
-			raise "Failed to execute tar"
-		end
-	end
+  private
+  def archive_homedir(uid)
+    return if @config[:noop]
+    return unless (@config[:archive_homedir])
+    return unless (Dir.exists?("/home/#{uid}"))
+    tarfile = "#{TARDIR}/#{uid}.tar"
+    begin
+      command = "tar cf #{tarfile} #{uid}"
+      pid = spawn(command, :chdir => "/home")
+      Process.detach(pid)
+      if @config[:verbose] then
+        puts "Started archiving the home directory"
+        puts "(pid #{pid})# #{command}"
+      end
+    rescue Errno::ENOENT => tar_error
+      STDERR.puts tar_error
+      raise "Failed to execute tar"
+    end
+  end
 
-	private
-	def remove_user(uid)
-		return if @config[:noop]
-		return unless (@config[:remove_user])
-		return unless (User.exists?(uid))
-		User.destroy(uid)
-		puts "Removed the user #{uid}" if @config[:verbose]
-	end
+  private
+  def remove_user(uid)
+    return if @config[:noop]
+    return unless (@config[:remove_user])
+    return unless (User.exists?(uid))
+    User.destroy(uid)
+    puts "Removed the user #{uid}" if @config[:verbose]
+  end
 
-	private
-	def remove_group(cn)
-		return if @config[:noop]
-		return unless (@config[:remove_group])
-		return unless (Group.exists?(cn))
-		Group.destroy(cn)
-		puts "Removed the group #{cn}" if @config[:verbose]
-	end
+  private
+  def remove_group(cn)
+    return if @config[:noop]
+    return unless (@config[:remove_group])
+    return unless (Group.exists?(cn))
+    Group.destroy(cn)
+    puts "Removed the group #{cn}" if @config[:verbose]
+  end
 
-	private
-	def remove_membership(cn, uid)
-		return if @config[:noop]
-		return unless (@config[:remove_membership])
-		return unless (Group.exists?(cn))
-		group = Group.find(cn)
-		memberUids = group.memberUid
-		memberUids.delete(uid)
-		group.memberUid = memberUids # call setter in order to overwrite
-		unless group.save
-			STDERR.puts group.errors.full_message
-			puts group if @config[:verbose]
-			exit 1
-		end
-		puts "Removed #{uid} from #{cn}" if @config[:verbose]
-	end
+  private
+  def remove_membership(cn, uid)
+    return if @config[:noop]
+    return unless (@config[:remove_membership])
+    return unless (Group.exists?(cn))
+    group = Group.find(cn)
+    memberUids = group.memberUid
+    memberUids.delete(uid)
+    group.memberUid = memberUids # call setter in order to overwrite
+    unless group.save
+      STDERR.puts group.errors.full_message
+      puts group if @config[:verbose]
+      exit 1
+    end
+    puts "Removed #{uid} from #{cn}" if @config[:verbose]
+  end
 
-	private
-	def expire(uid)
-		return if @config[:noop]
-		File.open(EXPIRED_LIST, 'a') do |f|
-			f.puts(uid)
-		end
-	end
+  private
+  def expire(uid)
+    return if @config[:noop]
+    File.open(EXPIRED_LIST, 'a') do |f|
+      f.puts(uid)
+    end
+  end
 
-	def show_help
-		puts HELP
-		puts @opts.to_s.gsub(/deluser/, 'deluser UID')
-	end
+  def show_help
+    puts HELP
+    puts @opts.to_s.gsub(/deluser/, 'deluser UID')
+  end
 end
 
 deluser = DelUser.new
