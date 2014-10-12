@@ -9,6 +9,7 @@ ManageUser.setup_connection
 
 class AddUser
 	include ManageUser
+	SHELLS=%w(bash zsh tcsh nologin)
 
 	def initialize
 		@user = nil
@@ -26,6 +27,14 @@ class AddUser
 		end
 		@opts.on('-s', '--shell=SHELL', "set a login shell") do |shell|
 			@config[:shell] = shell
+		end
+		SHELLS.each do |shell|
+			@opts.on("--#{shell}", TrueClass, "same as --shell=$(which #{shell})") do |use_shell|
+				@config[shell.to_sym] = use_shell
+			end
+		end
+		@opts.on('-t', '--test', TrueClass, "create a test user") do |test|
+			@config[:test] = test
 		end
 		@opts.on('--expire=EXPIRE', "set an expire date") do |expire|
 			@config[:expire] = expire
@@ -83,8 +92,9 @@ The adduser script adds a new LDAP user on the system.
 #{usage}
 
 Example:
-    #{prog} --group=jokyo,oa --shell=/bin/zsh --comment="Super Global Jokyo" uwabami "SASAKI, Youhei"
-    #{prog} -v -g oa -g doctor -s /bin/zsh --uid-number=12345 --gid-number=12345 uda "UDA, Tomoki"
+    #{prog} --group=jokyo,oa --shell=/usr/bin/zsh --comment="Super Global Jokyo" uwabami "SASAKI, Youhei"
+    #{prog} -v -g oa -g doctor --zsh --uid-number=12345 --gid-number=12345 uda "UDA, Tomoki"
+    #{prog} -v -n --nologin --comment "adduser test" --test kuttinpa "ONODERA, Hikaru"
 
 EOHelp
 	end
