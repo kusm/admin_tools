@@ -2,4 +2,5 @@ source "https://rubygems.org"
 
 # FIXME: activeldap に乗り換える
 gem "ruby-ldap"
+gem "activeldap"
 
