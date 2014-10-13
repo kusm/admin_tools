@@ -18,6 +18,7 @@ class AddUser
   TEST_ID_RANGE = 12000...15000
   TEST_USER_PREFIX = 'testuser'
   PERMANENT_GROUPS = %w[kyoju junkyoju koshi jokyo]
+  PASSWORD_LENGTH = 10
 
   def initialize
     @user = nil
@@ -215,7 +216,14 @@ class AddUser
     info "Set expire as '#{@expire}.'"
   end
 
+  def set_password(password)
+    @password = password
+    @hashed_password = calculate_hashed_password password
+    info "Set password as #{@password}."
+  end
+
   def main
+    set_password generate_random_password(PASSWORD_LENGTH)
     # --help
     if (is_mode? :help || @user == nil) then
       show_help

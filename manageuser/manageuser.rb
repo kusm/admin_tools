@@ -24,18 +24,20 @@ module ManageUser
     )
   end
 
-  def self.generate_random_password(size = 10)
+  def generate_random_password(size = 10)
     charset = ('a'..'z').to_a + ('A'..'Z').to_a + ('0'..'9').to_a
     charset += %w[# $ % & + - ^ @ { } < > / _]
     charset -= %w[l 1 I 7 T g q 9 o 0 O Q D]
     (1..size).inject('') { |p| p << charset[rand(charset.size)] }
   end
+  module_function :generate_random_password
 
-  def self.calculate_hashed_password(raw_password)
+  def calculate_hashed_password(raw_password)
     salt_charset = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
     salt = salt_charset[rand 64] + salt_charset[rand 64]
     '{SSHA}' + Base64.encode64(Digest::SHA1.digest(raw_password + salt) + salt).chomp
   end
+  module_function :calculate_hashed_password
 
   private
   def self.get_password_from_secret
