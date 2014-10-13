@@ -222,6 +222,29 @@ class AddUser
     info "Set password as #{@password}."
   end
 
+  def create_user
+    return if @user
+    @user = User.new @uid
+    @user.cn = @full_name
+    @user.sn = @family_name
+    @user.given_name = @given_name
+    @user.gecos = @full_name
+    @user.display_name = @full_name
+    @user.login_shell = @shell
+    @user.user_password = @hashed_password
+    @user.home_directory = @homedir.to_s
+    @user.uid_number = @uid_number
+    @user.gid_number = @gid_number
+    @user.description = "SINCE #{Time.now.strftime '%Y%m%d'}, #{@expire}, #{@comment}"
+    return if is_mode? :noop
+    unless @user.save then
+      warning @user.errors.full_messages.join ' '
+      error "Failed to create a new LDAP user #{@user.dn}!"
+    end
+    info "Created a new LDAP user #{@user.dn}."
+    info @user.to_s
+  end
+
   ##########################################################
   ######################### <HELP>  ########################
   def show_help
@@ -244,6 +267,7 @@ EOHelp
 
   def main
     set_password generate_random_password(PASSWORD_LENGTH)
+    create_user
     # --help
     if (is_mode? :help || @user == nil) then
       show_help
