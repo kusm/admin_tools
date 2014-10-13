@@ -39,6 +39,22 @@ module ManageUser
   end
   module_function :calculate_hashed_password
 
+  def error(msg)
+    STDERR.puts '[ERROR] ' + msg
+    exit 1
+  end
+  module_function :error
+
+  def warning(msg)
+    STDERR.puts '[WARNING] ' + msg if is_mode?(:verbose)
+  end
+  module_function :warning
+
+  def info(msg)
+    STDOUT.puts '[INFO] ' + msg if is_mode?(:verbose)
+  end
+  module_function :info
+
   private
   def self.get_password_from_secret
     password = ''

@@ -259,19 +259,6 @@ EOHelp
     users.collect(&attr_type).select(&range.method(:include?)).max || range.first
   end
 
-  def error(msg)
-    STDERR.puts '[ERROR] ' + msg
-    exit 1
-  end
-
-  def warning(msg)
-    STDERR.puts '[WARNING] ' + msg if is_mode?(:verbose)
-  end
-
-  def info(msg)
-    STDOUT.puts '[INFO] ' + msg if is_mode?(:verbose)
-  end
-
   def debug
     exit
   end
