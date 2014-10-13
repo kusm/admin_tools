@@ -21,7 +21,6 @@ Next, it removes related data as shown below:
 EOHelp
 
   def initialize
-    @user = nil
     @config = {
       :archive_homedir => true,
       :remove_user => true,
@@ -65,40 +64,34 @@ EOHelp
 
   def main
     # --help
-    if (@config[:help] || @user == nil) then
+    if @config[:help] then
       show_help
       exit
     end
-    uid = @user.uid
-    archive_homedir(uid)
-    @user.groups.each do |group|
-      remove_membership(group.cn, uid)
-    end
-    remove_group(@user.primary_group.cn)
-    remove_user(uid)
-    expire(uid)
+    archive_homedir
+    remove_memberships
+    remove_primary_group
+    remove_user
+    expire
   end
 
   private
+
   def debug
     exit
   end
 
-  private
   def set_uid(uid)
-    if (uid && User.exists?(uid)) then
-      @user = User.find(uid)
-    end
+    @uid = uid
   end
 
-  private
-  def archive_homedir(uid)
+  def archive_homedir
     return if @config[:noop]
     return unless (@config[:archive_homedir])
-    return unless (Dir.exists?("/home/#{uid}"))
-    tarfile = "#{TARDIR}/#{uid}.tar"
+    return unless (Dir.exists?("/home/#{@uid}"))
+    tarfile = "#{TARDIR}/#{@uid}.tar"
     begin
-      command = "tar cf #{tarfile} #{uid}"
+      command = "tar cf #{tarfile} #{@uid}"
       pid = spawn(command, :chdir => "/home")
       Process.detach(pid)
       if @config[:verbose] then
@@ -111,46 +104,47 @@ EOHelp
     end
   end
 
-  private
-  def remove_user(uid)
+  def remove_user
     return if @config[:noop]
     return unless (@config[:remove_user])
-    return unless (User.exists?(uid))
-    User.destroy(uid)
-    puts "Removed the user #{uid}" if @config[:verbose]
+    return unless (User.exists?(@uid))
+    User.destroy(@uid)
+    puts "Removed the user #{@uid}" if @config[:verbose]
   end
 
-  private
-  def remove_group(cn)
+  def remove_primary_group
     return if @config[:noop]
     return unless (@config[:remove_group])
-    return unless (Group.exists?(cn))
+    return unless (User.exists?(@uid))
+    return unless (Group.exists?(@uid))
+    cn = User.find(@uid).primary_group.cn
     Group.destroy(cn)
     puts "Removed the group #{cn}" if @config[:verbose]
   end
 
-  private
-  def remove_membership(cn, uid)
+  def remove_memberships
     return if @config[:noop]
     return unless (@config[:remove_membership])
-    return unless (Group.exists?(cn))
-    group = Group.find(cn)
+    return unless (User.exists?(@uid))
+    User.find(@uid).groups.each &method(:remove_membership)
+  end
+
+  def remove_membership(group)
     memberUids = group.memberUid
-    memberUids.delete(uid)
+    memberUids.delete(@uid)
     group.memberUid = memberUids # call setter in order to overwrite
     unless group.save
       STDERR.puts group.errors.full_message
       puts group if @config[:verbose]
       exit 1
     end
-    puts "Removed #{uid} from #{cn}" if @config[:verbose]
+    puts "Removed #{@uid} from #{@group.cn}" if @config[:verbose]
   end
 
-  private
-  def expire(uid)
+  def expire
     return if @config[:noop]
     File.open(EXPIRED_LIST, 'a') do |f|
-      f.puts(uid)
+      f.puts(@uid)
     end
   end
 
