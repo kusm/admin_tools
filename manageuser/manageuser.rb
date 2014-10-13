@@ -1,13 +1,14 @@
-# -*- coding: utf-8; -*-
 
 require 'active_ldap'
+require 'yaml'
 require_relative './models/user'
 require_relative './models/group'
 
 module ManageUser
-
   EXPIRED_LIST = '/home/expired_users'
   TARDIR = '/home.backup/expired'
+  CONFIG_FILE = File.expand_path('../config/connection.yaml', __FILE__)
+  LDAP_SECRET_FILE = File.expand_path('../secret/ldap.secret', __FILE__)
 
   def self.need_root_or_exit
     if `id -u`.to_i != 0 then
@@ -17,15 +18,11 @@ module ManageUser
   end
 
   def self.setup_connection
-    ActiveLdap::Base.setup_connection(
-      :host => 'localhost',
-      :port => 389,
-      :base => 'dc=math,dc=kyoto-u,dc=ac,dc=jp',
-      :bind_dn => 'cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp',
-      :password_block => Proc.new {
-        get_password_from_secret
-      }
-    )
+    config = read_connection_config(CONFIG_FILE)
+    config[:password_block] = Proc.new {
+      get_password_from_secret
+    }
+    ActiveLdap::Base.setup_connection config
   end
 
   def generate_random_password(size = 10)
@@ -60,15 +57,15 @@ module ManageUser
   module_function :info
 
   private
+
   def self.get_password_from_secret
-    password = ''
-    Dir.chdir(File.expand_path('../', __FILE__)) do
-      secret_file = "secret/ldap.admin.secret"
-      system("make secret") unless File.exists?(secret_file)
-      password = File.open(secret_file, 'r').read.chomp
-    end
-    password
+    system('make secret') unless File.exists?(LDAP_SECRET_FILE)
+    File.open(LDAP_SECRET_FILE, 'r').read.chomp
   end
 
+  def self.read_connection_config(file)
+    error "Config file #{file} does NOT exist!" unless File.exists?(file)
+    YAML.load_file file
+  end
 end
 
