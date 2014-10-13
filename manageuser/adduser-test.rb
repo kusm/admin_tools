@@ -222,43 +222,6 @@ class AddUser
     info "Set password as #{@password}."
   end
 
-  def main
-    set_password generate_random_password(PASSWORD_LENGTH)
-    # --help
-    if (is_mode? :help || @user == nil) then
-      show_help
-      exit
-    end
-  end
-
-  # range の範囲におさまる User の数値属性 attr_type で最大のものを返す．
-  private
-  def calculate_max(attr_type, range)
-    users = User.find(:all, :attribute => attr_type, :value => '*')
-    users.collect(&attr_type).select(&range.method(:include?)).max || range.first
-  end
-
-  private
-  def error(msg)
-    STDERR.puts '[ERROR] ' + msg
-    exit 1
-  end
-
-  private
-  def warning(msg)
-    STDERR.puts '[WARNING] ' + msg if is_mode?(:verbose)
-  end
-
-  private
-  def info(msg)
-    STDOUT.puts '[INFO] ' + msg if is_mode?(:verbose)
-  end
-
-  private
-  def debug
-    exit
-  end
-
   ##########################################################
   ######################### <HELP>  ########################
   def show_help
@@ -278,6 +241,40 @@ EOHelp
   end
   ######################### </HELP> ########################
   ##########################################################
+
+  def main
+    set_password generate_random_password(PASSWORD_LENGTH)
+    # --help
+    if (is_mode? :help || @user == nil) then
+      show_help
+      exit
+    end
+  end
+
+  private
+
+  # range の範囲におさまる User の数値属性 attr_type で最大のものを返す．
+  def calculate_max(attr_type, range)
+    users = User.find(:all, :attribute => attr_type, :value => '*')
+    users.collect(&attr_type).select(&range.method(:include?)).max || range.first
+  end
+
+  def error(msg)
+    STDERR.puts '[ERROR] ' + msg
+    exit 1
+  end
+
+  def warning(msg)
+    STDERR.puts '[WARNING] ' + msg if is_mode?(:verbose)
+  end
+
+  def info(msg)
+    STDOUT.puts '[INFO] ' + msg if is_mode?(:verbose)
+  end
+
+  def debug
+    exit
+  end
 end
 
 adduser = AddUser.new
