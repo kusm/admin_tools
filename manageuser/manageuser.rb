@@ -1,7 +1,11 @@
+# -*- coding: utf-8; -*-
 
 require 'active_ldap'
+require_relative './models/user'
+require_relative './models/group'
 
 module ManageUser
+
   EXPIRED_LIST = '/home/expired_users'
   TARDIR = '/home.backup/expired'
 
@@ -66,49 +70,5 @@ module ManageUser
     password
   end
 
-end
-
-## Module の下に User/Group をつっこむとよー分からんが NameError はかれる．
-## たぶん Active なんたらにありがちなメタプログラミングのせいでおきるバグ
-## だと思う．しょうがないのでグローバルに置いておく．
-
-class User < ActiveLdap::Base
-  # uid=$(uid),ou=People,dc=math,...
-  ldap_mapping :dn_attribute => 'uid',
-    :prefix => 'ou=People',
-    :classes => ['inetOrgPerson', 'posixAccount'],
-    :scope => :one
-
-  # Associate with primary belonged group
-  belongs_to :primary_group,
-    :foreign_key => 'gidNumber',
-    :class_name => 'Group',
-    :primary_key => 'gidNumber'
-
-  # Associate with all belonged groups
-  belongs_to :groups,
-    :primary_key => 'uid',
-    :class_name => 'Group',
-    :many => 'memberUid'
-end
-
-class Group < ActiveLdap::Base
-  # cn=$(cn),ou=Group,dc=math,...
-  ldap_mapping :dn_attribute => 'cn',
-    :prefix => 'ou=Group',
-    :classes => ['posixGroup'],
-    :scope => :one
-
-  # Associate with primary belonged users
-  has_many :primary_members,
-    :foreign_key => 'gidNumber',
-    :class_name => 'User',
-    :primary_key => 'gidNumber'
-
-  # Associate with all belonged users
-  has_many :members,
-    :wrap => 'memberUid',
-    :class_name => 'User',
-    :primary_key => 'uid'
 end
 
