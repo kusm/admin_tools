@@ -3,6 +3,8 @@
 
 require 'optparse'
 require 'pathname'
+require 'fileutils'
+require 'erb'
 
 require './manageuser.rb'
 ManageUser.need_root_or_exit if not $DEBUG
@@ -13,6 +15,8 @@ class AddUser
   SHELLS = %w(bash zsh tcsh nologin)
   DEFAULT_SHELL = SHELLS.first
   DEFAULT_HOME = Pathname.new '/home'
+  TEMPLATE_DIR = Pathname.new File.expand_path('../template/', __FILE__)
+  SKEL_DIR = Pathname.new File.expand_path('../skel/', __FILE__)
   VALID_UID = /^[a-z][a-z0-9_\.\-]*[a-z0-9]$/i
   ID_RANGE = 2000...5000
   TEST_ID_RANGE = 12000...15000
@@ -245,6 +249,47 @@ class AddUser
     info @user.to_s
   end
 
+  def create_homedir
+    return if /nologin/ =~ @shell
+    return if is_mode? :noop
+    ## TODO: 互換性のため nologin では mkdir しないが，@homedir だけは作ってもよい？
+    @homedir.mkdir 0755
+    info "Created #{@homedir}."
+    FileUtils.copy_entry(SKEL_DIR, @homedir)
+    ## create empty directories
+    [
+      [ 02700, './Maildir/.Drafts' ],
+      [ 02700, './Maildir/.Junk' ],
+      [ 02700, './Maildir/.Sent' ],
+      [ 02700, './Maildir/.Templates' ],
+      [ 02700, './Maildir/.Archives' ],
+      [ 02700, './Maildir/.Trash' ],
+      [ 00700, './Maildir/cur' ],
+      [ 00700, './Maildir/new' ],
+      [ 00700, './Maildir/tmp' ]
+    ].each do |permission, dir|
+      (@homedir + dir).mkdir permission
+    end
+    ## render template files
+    [
+      [ 'prefs.js.org.erb', './.icedove/prefs.js.org' ]
+    ].each do |template_name, destination|
+      (@homedir + destination).open('w') do |file|
+        file.write render(template_name)
+      end
+    end
+    info "Copied template files."
+    FileUtils.chown_R(@uid_number, @gid_number, @homedir.to_s)
+    info "Set file owner as #{@uid_number}:#{@gid_number}"
+  end
+
+  def render(template_name)
+    File.open(TEMPLATE_DIR + template_name) do |file|
+      ERB.new(file.read).result(binding)
+    end
+  end
+  private :render
+
   ##########################################################
   ######################### <HELP>  ########################
   def show_help
@@ -268,6 +313,7 @@ EOHelp
   def main
     set_password generate_random_password(PASSWORD_LENGTH)
     create_user
+    create_homedir
     # --help
     if (is_mode? :help || @user == nil) then
       show_help
