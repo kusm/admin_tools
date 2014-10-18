@@ -2,9 +2,6 @@
 # -*- coding: utf-8; -*-
 
 require 'optparse'
-require 'pathname'
-require 'fileutils'
-require 'erb'
 
 require './manageuser.rb'
 ManageUser.need_root_or_exit if not $DEBUG
@@ -13,19 +10,11 @@ ManageUser.setup_connection
 class AddUser
   include ManageUser
 
-  LATEX = 'pdflatex'
   SHELLS = %w(bash zsh tcsh nologin)
   DEFAULT_SHELL = SHELLS.first
-  DEFAULT_HOME = Pathname.new '/home'
-  PROGRAM_DIR = Pathname.new File.expand_path('../', __FILE__)
-  TEMPLATE_DIR = PROGRAM_DIR + 'template/'
   SKEL_DIR = PROGRAM_DIR + 'skel/'
-  ALL_USERS_FORWARD = Pathname.new '/home/user/.forward'
   VALID_NAME = /^[a-z0-9\.\-\s]+,[a-z0-9\.\-\s]+$/i
   VALID_UID = /^[a-z][a-z0-9\.\-]*[a-z0-9]$/i
-  ID_RANGE = 2000...5000
-  TEST_ID_RANGE = 12000...15000
-  TEST_USER_PREFIX = 'testuser'
   PERMANENT_GROUPS = %w[kyoju junkyoju koshi jokyo]
   PASSWORD_LENGTH = 10
 
@@ -41,13 +30,8 @@ class AddUser
     @expire = nil
     @shell = `which #{DEFAULT_SHELL}`.strip
     @groups = []
-    @flags = {
-      noop: false,
-      verbose: false,
-      test: false,
-      help: false
-    }
     @opts = OptionParser.new
+    initialize_flags
     initialize_parser
   end
 
@@ -109,23 +93,11 @@ class AddUser
     set_uid uid
     set_full_name full_name
     ## set default values if not given by options
-    range = is_mode?(:test) ? TEST_ID_RANGE : ID_RANGE
+    range = get_id_range
     set_uid_number calculate_max(:uidNumber, range) + 1 unless @uid_number
     set_gid_number calculate_max(:gidNumber, range) + 1 unless @gid_number
     set_comment is_mode?(:test) ? 'test account' : 'normal account' unless @comment
     set_expire '?' unless @expire
-  end
-
-  def set_mode(type, enabled)
-    @flags[type] = enabled
-    info "#{enabled ? 'Enabled' : 'Disabled'} #{type} mode."
-    if enabled and type == :test then
-      info 'Test mode will cause you to create a test user. Please remove it later manually.'
-    end
-  end
-
-  def is_mode?(type)
-    @flags[type]
   end
 
   def set_uid(uid)
@@ -143,7 +115,7 @@ class AddUser
     if (User.exists?(uid)) then
       error "The user #{uid} already exists!"
     end
-    set_homedir DEFAULT_HOME + uid unless @homedir
+    set_homedir HOME + uid unless @homedir
   end
 
   def set_full_name(name)
@@ -199,7 +171,7 @@ class AddUser
   end
 
   def set_uid_number(uid_number)
-    range = is_mode?(:test) ? TEST_ID_RANGE : ID_RANGE
+    range = get_id_range
     unless (range.include?(uid_number)) then
       error "The uidNumber was not given in a valid range #{range}."
     end
@@ -208,7 +180,7 @@ class AddUser
   end
 
   def set_gid_number(gid_number)
-    range = is_mode?(:test) ? TEST_ID_RANGE : ID_RANGE
+    range = get_id_range
     unless (range.include?(gid_number)) then
       error "The gidNumber was not given in a valid range #{range}."
     end
@@ -325,35 +297,6 @@ class AddUser
     info "Set file owner as #{@uid_number}:#{@gid_number}"
   end
 
-  def create_password_pdf
-    latex_options = %w(-halt-on-error -no-shell-escape)
-    latex_options += %w(-draftmode) if is_mode? :noop
-    Dir.mktmpdir do |dir|
-      info "Temporally working on #{dir}."
-      temp_path = Pathname.new(dir) + "PASSWORD.#{@uid}.tex"
-      temp_path.open 'w' do |temp|
-        temp.chmod 0600
-        temp.write render('password.tex.erb')
-      end
-      info "#{LATEX} #{latex_options.join ' '} #{temp_path.to_s}"
-      Dir.chdir dir do
-        system(LATEX, *latex_options, temp_path.to_s)
-        return if is_mode? :noop
-        pdf_path = temp_path.sub_ext '.pdf'
-        pdf_path.chmod 0600
-        FileUtils.mv pdf_path, PROGRAM_DIR
-        info "Created #{PROGRAM_DIR + pdf_path.basename} successfully."
-      end
-    end
-  end
-
-  def render(template_name)
-    File.open(TEMPLATE_DIR + template_name) do |file|
-      ERB.new(file.read).result(binding)
-    end
-  end
-  private :render
-
   ##########################################################
   ######################### <HELP>  ########################
   def show_help
@@ -375,6 +318,11 @@ EOHelp
   ##########################################################
 
   def main
+    # --help
+    if is_mode? :help then
+      show_help
+      exit
+    end
     set_password generate_random_password(PASSWORD_LENGTH)
     create_primary_group
     create_user
@@ -382,11 +330,6 @@ EOHelp
     add_user_to_ml
     create_homedir
     create_password_pdf
-    # --help
-    if (is_mode? :help || @user == nil) then
-      show_help
-      exit
-    end
   end
 
   private

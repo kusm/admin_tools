@@ -1,4 +1,5 @@
 #!/usr/bin/ruby
+# -*- coding: utf-8; -*-
 
 require 'optparse'
 require 'io/console'
@@ -28,12 +29,11 @@ EOHelp
       :remove_membership => true
     }
     @opts = OptionParser.new
-    @opts.on('-v', '--verbose', "increase verbosity") do
-      @config[:verbose] = true
-    end
-    @opts.on('-n', '--noop', "do nothing") do
-      @config[:noop] = true
-    end
+    initialize_flags
+    initialize_parser
+  end
+
+  def initialize_parser
     @opts.on('-m', '--[no-]membership', TrueClass, "remove memberships (default: true)") do |membership|
       @config[:remove_membership] = membership
     end
@@ -46,10 +46,20 @@ EOHelp
     @opts.on('-d', '--[no-]homedir', TrueClass, "archive the home directory (default: true)") do |homedir|
       @config[:archive_homedir] = homedir
     end
-    @opts.on('-h', '--help', "show help message") do
-      @config[:help] = true
+    @opts.on('-n', '--noop', TrueClass, "do nothing") do
+      set_mode :noop, true
+    end
+    @opts.on('-v', '--[no-]verbose', TrueClass, "increase verbosity") do |verbose|
+      set_mode :verbose, verbose
+    end
+    @opts.on('-t', '--[no-]test', TrueClass, "suppose the user is a test user") do |test|
+      set_mode :test, test
+    end
+    @opts.on_tail('-h', '--help', TrueClass, "show a help message") do
+      set_mode :help, true
     end 
   end
+  private :initialize_parser
 
   # Parse the UID: "./deluser UID ..."
   def parse_options!(argv)
@@ -64,7 +74,7 @@ EOHelp
 
   def main
     # --help
-    if @config[:help] then
+    if is_mode? :help then
       show_help
       exit
     end
@@ -86,44 +96,39 @@ EOHelp
   end
 
   def archive_homedir
-    return if @config[:noop]
+    return if is_mode? :noop
     return unless (@config[:archive_homedir])
     return unless (Dir.exists?("/home/#{@uid}"))
-    tarfile = "#{TARDIR}/#{@uid}.tar"
-    begin
-      command = "tar cf #{tarfile} #{@uid}"
-      pid = spawn(command, :chdir => "/home")
-      Process.detach(pid)
-      if @config[:verbose] then
-        puts "Started archiving the home directory"
-        puts "(pid #{pid})# #{command}"
-      end
-    rescue Errno::ENOENT => tar_error
-      STDERR.puts tar_error
-      raise "Failed to execute tar"
-    end
+    tarfile = EXPIRED_DIR + "#{@uid}.tar"
+    command = "#{TAR} cf #{tarfile} #{@uid}"
+    pid = spawn(command, :chdir => "/home")
+    Process.detach(pid)
+    info "Started archiving the home directory"
+    info "(pid #{pid})# #{command}"
+  rescue Errno::ENOENT => tar_error
+    error "Failed to execute tar!\n#{tar_error}"
   end
 
   def remove_user
-    return if @config[:noop]
+    return if is_mode? :noop
     return unless (@config[:remove_user])
     return unless (User.exists?(@uid))
     User.destroy(@uid)
-    puts "Removed the user #{@uid}" if @config[:verbose]
+    info "Removed the user #{@uid}"
   end
 
   def remove_primary_group
-    return if @config[:noop]
+    return if is_mode? :noop
     return unless (@config[:remove_group])
     return unless (User.exists?(@uid))
     return unless (Group.exists?(@uid))
     cn = User.find(@uid).primary_group.cn
     Group.destroy(cn)
-    puts "Removed the group #{cn}" if @config[:verbose]
+    info "Removed the group #{cn}"
   end
 
   def remove_memberships
-    return if @config[:noop]
+    return if is_mode? :noop
     return unless (@config[:remove_membership])
     return unless (User.exists?(@uid))
     User.find(@uid).groups.each &method(:remove_membership)
@@ -134,15 +139,14 @@ EOHelp
     memberUids.delete(@uid)
     group.memberUid = memberUids # call setter in order to overwrite
     unless group.save
-      STDERR.puts group.errors.full_message
-      puts group if @config[:verbose]
-      exit 1
+      warning group.errors.full_messages.join ' '
+      error group.errors.full_message
     end
-    puts "Removed #{@uid} from #{@group.cn}" if @config[:verbose]
+    info "Removed #{@uid} from #{group.cn}"
   end
 
   def expire
-    return if @config[:noop]
+    return if is_mode? :noop
     File.open(EXPIRED_LIST, 'a') do |f|
       f.puts(@uid)
     end
