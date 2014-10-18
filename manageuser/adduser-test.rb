@@ -12,11 +12,13 @@ ManageUser.setup_connection
 
 class AddUser
   include ManageUser
+
   SHELLS = %w(bash zsh tcsh nologin)
   DEFAULT_SHELL = SHELLS.first
   DEFAULT_HOME = Pathname.new '/home'
   TEMPLATE_DIR = Pathname.new File.expand_path('../template/', __FILE__)
   SKEL_DIR = Pathname.new File.expand_path('../skel/', __FILE__)
+  ALL_USERS_FORWARD = Pathname.new '/home/user/.forward'
   VALID_UID = /^[a-z][a-z0-9_\.\-]*[a-z0-9]$/i
   ID_RANGE = 2000...5000
   TEST_ID_RANGE = 12000...15000
@@ -278,6 +280,14 @@ class AddUser
     info "The new user #{@uid} belongs to the following groups: #{@groups.map(&:cn).join(',')}."
   end
 
+  def add_user_to_ml
+    return if is_mode? :noop
+    ALL_USERS_FORWARD.open 'a' do |dot_forward|
+      dot_forward.write "#{@uid}\n"
+    end
+    info "Registered the ner user #{@uid} to a mailing list #{ALL_USERS_FORWARD}."
+  end
+
   def create_homedir
     return if /nologin/ =~ @shell
     return if is_mode? :noop
@@ -344,6 +354,7 @@ EOHelp
     create_primary_group
     create_user
     add_user_to_groups
+    add_user_to_ml
     create_homedir
     # --help
     if (is_mode? :help || @user == nil) then
