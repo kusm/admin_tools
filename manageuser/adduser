@@ -258,6 +258,7 @@ class AddUser
 
   def add_user_to_ml
     return if is_mode? :noop
+    return if is_mode? :test
     ALL_USERS_FORWARD.open 'a' do |dot_forward|
       dot_forward.write "#{@uid}\n"
     end
@@ -307,12 +308,28 @@ class AddUser
 The adduser script adds a new LDAP user on the system.
 
 #{usage}
+Note: The following are differences between --no-test (default) and --test.
+
+                        |          with --no-test          |         with --test         |
+==========================================================================================
+UID                     | length should be <= 8            | length should be > 8        |
+                        |                                  | if not, add testuser prefix |
+------------------------+----------------------------------+-----------------------------+
+uid number --uid-number | should be in [2000, 5000)        | should be in [12000, 15000) |
+------------------------+----------------------------------+-----------------------------+
+gid number --gid-number | should be in [2000, 5000)        | should be in [12000, 15000) |
+------------------------+----------------------------------+-----------------------------+
+default uid/gid number  | the latest number in the related range                         |
+------------------------+----------------------------------+-----------------------------+
+default --comment       | "normal account"                 | "test account"              |
+------------------------+----------------------------------+-----------------------------+
+the ML ~user/.forward   | will be modified                 | will NOT be modified        |
+------------------------+----------------------------------+-----------------------------+
 
 Example:
     #{prog} --group=jokyo,oa --shell=/usr/bin/zsh --comment="Super Global Jokyo" uwabami "SASAKI, Youhei"
-    #{prog} -v -g oa -g doctor --zsh --uid-number=12345 --gid-number=12345 uda "UDA, Tomoki"
+    #{prog} -v -g oa -g doctor --zsh --test --uid-number=12345 --gid-number=12345 uda "UDA, Tomoki"
     #{prog} -v -n --nologin --comment "adduser test" --test kuttinpa "ONODERA, Hikaru"
-
 EOHelp
     exit
   end

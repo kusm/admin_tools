@@ -118,9 +118,6 @@ module ManageUser
   def set_mode(type, enabled)
     @flags[type] = enabled
     info "#{enabled ? 'Enabled' : 'Disabled'} #{type} mode."
-    if enabled and type == :test then
-      info 'Test mode will cause you to create a test user. Please remove it later manually.'
-    end
   end
 
   def is_mode?(type)
