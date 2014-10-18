@@ -90,6 +90,7 @@ class AddUser
       full_name = argv.shift
     end
     @opts.order!(argv)
+    show_help_exit unless (uid and full_name)
     set_uid uid
     set_full_name full_name
     ## set default values if not given by options
@@ -299,7 +300,7 @@ class AddUser
 
   ##########################################################
   ######################### <HELP>  ########################
-  def show_help
+  def show_help_exit
     usage = @opts.to_s.gsub("[options]", '[options] UID "FAMILY_NAME, Given_name"')
     prog = @opts.program_name
     puts <<EOHelp
@@ -313,16 +314,14 @@ Example:
     #{prog} -v -n --nologin --comment "adduser test" --test kuttinpa "ONODERA, Hikaru"
 
 EOHelp
+    exit
   end
   ######################### </HELP> ########################
   ##########################################################
 
   def main
     # --help
-    if is_mode? :help then
-      show_help
-      exit
-    end
+    show_help_exit if is_mode? :help
     set_password generate_random_password(PASSWORD_LENGTH)
     create_primary_group
     create_user
