@@ -13,11 +13,13 @@ ManageUser.setup_connection
 class AddUser
   include ManageUser
 
+  LATEX = 'pdflatex'
   SHELLS = %w(bash zsh tcsh nologin)
   DEFAULT_SHELL = SHELLS.first
   DEFAULT_HOME = Pathname.new '/home'
-  TEMPLATE_DIR = Pathname.new File.expand_path('../template/', __FILE__)
-  SKEL_DIR = Pathname.new File.expand_path('../skel/', __FILE__)
+  PROGRAM_DIR = Pathname.new File.expand_path('../', __FILE__)
+  TEMPLATE_DIR = PROGRAM_DIR + 'template/'
+  SKEL_DIR = PROGRAM_DIR + 'skel/'
   ALL_USERS_FORWARD = Pathname.new '/home/user/.forward'
   VALID_UID = /^[a-z][a-z0-9_\.\-]*[a-z0-9]$/i
   ID_RANGE = 2000...5000
@@ -322,6 +324,28 @@ class AddUser
     info "Set file owner as #{@uid_number}:#{@gid_number}"
   end
 
+  def create_password_pdf
+    latex_options = %w(-halt-on-error -no-shell-escape)
+    latex_options += %w(-draftmode) if is_mode? :noop
+    Dir.mktmpdir do |dir|
+      info "Temporally working on #{dir}."
+      temp_path = Pathname.new(dir) + "PASSWORD.#{@uid}.tex"
+      temp_path.open 'w' do |temp|
+        temp.chmod 0600
+        temp.write render('password.tex.erb')
+      end
+      info "#{LATEX} #{latex_options.join ' '} #{temp_path.to_s}"
+      Dir.chdir dir do
+        system(LATEX, *latex_options, temp_path.to_s)
+        return if is_mode? :noop
+        pdf_path = temp_path.sub_ext '.pdf'
+        pdf_path.chmod 0600
+        FileUtils.mv pdf_path, PROGRAM_DIR
+        info "Created #{PROGRAM_DIR + pdf_path.basename} successfully."
+      end
+    end
+  end
+
   def render(template_name)
     File.open(TEMPLATE_DIR + template_name) do |file|
       ERB.new(file.read).result(binding)
@@ -356,6 +380,7 @@ EOHelp
     add_user_to_groups
     add_user_to_ml
     create_homedir
+    create_password_pdf
     # --help
     if (is_mode? :help || @user == nil) then
       show_help
