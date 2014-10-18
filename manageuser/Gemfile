@@ -1,6 +1,7 @@
 source "https://rubygems.org"
 
-# FIXME: activeldap に乗り換える
+## Backend が net-ldap ではなく ruby-ldap でないと
+## encoding で問題が起きる．
 gem "ruby-ldap"
 gem "activeldap"
 
