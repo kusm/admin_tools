@@ -168,6 +168,7 @@ class AddUser
     unless File.executable?(shell_path)
       error "The shell #{shell_path} is not executable!"
     end
+    @shell = shell_path
     info "Set login shell as #{shell_path}."
   end
 
