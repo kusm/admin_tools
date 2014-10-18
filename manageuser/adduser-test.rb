@@ -263,6 +263,21 @@ class AddUser
     info @primary_group.to_s
   end
 
+  def add_user_to_groups
+    return if is_mode? :noop
+    @groups.each do |group|
+      member_uid = group.member_uid
+      member_uid << @uid
+      group.member_uid = member_uid
+      unless group.save then
+        warning group.errors.full_messages.join ' '
+        error "Failed to modify a LDAP group #{group.dn}!"
+      end
+      info "Modified a LDAP group #{group.dn}."
+    end
+    info "The new user #{@uid} belongs to the following groups: #{@groups.map(&:cn).join(',')}."
+  end
+
   def create_homedir
     return if /nologin/ =~ @shell
     return if is_mode? :noop
@@ -328,6 +343,7 @@ EOHelp
     set_password generate_random_password(PASSWORD_LENGTH)
     create_primary_group
     create_user
+    add_user_to_groups
     create_homedir
     # --help
     if (is_mode? :help || @user == nil) then
