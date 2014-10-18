@@ -21,7 +21,8 @@ class AddUser
   TEMPLATE_DIR = PROGRAM_DIR + 'template/'
   SKEL_DIR = PROGRAM_DIR + 'skel/'
   ALL_USERS_FORWARD = Pathname.new '/home/user/.forward'
-  VALID_UID = /^[a-z][a-z0-9_\.\-]*[a-z0-9]$/i
+  VALID_NAME = /^[a-z0-9\.\-\s]+,[a-z0-9\.\-\s]+$/i
+  VALID_UID = /^[a-z][a-z0-9\.\-]*[a-z0-9]$/i
   ID_RANGE = 2000...5000
   TEST_ID_RANGE = 12000...15000
   TEST_USER_PREFIX = 'testuser'
@@ -129,7 +130,7 @@ class AddUser
 
   def set_uid(uid)
     unless (uid =~ VALID_UID) then
-      error "#{uid} is NOT a valid UID!"
+      error "#{uid} is NOT a valid UID! It should match /#{VALID_UID.source}/."
     end
     if (is_mode?(:test) and uid.length <= 8) then
       uid = "#{TEST_USER_PREFIX}#{uid}"
@@ -146,8 +147,8 @@ class AddUser
   end
 
   def set_full_name(name)
-    unless (name.include?(',')) then
-      error "#{name} has no commas!"
+    unless (name =~ VALID_NAME) then
+      error "#{name} is NOT a valid full name! It should match /#{VALID_NAME.source}/."
     end
     @family_name, @given_name = name.split /,/
     @family_name.strip!
