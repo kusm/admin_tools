@@ -26,6 +26,7 @@ class AddUser
 
   def initialize
     @user = nil
+    @primary_group = nil
     @uid_number = nil
     @gid_number = nil
     @homedir = nil
@@ -240,6 +241,7 @@ class AddUser
     @user.uid_number = @uid_number
     @user.gid_number = @gid_number
     @user.description = "SINCE #{Time.now.strftime '%Y%m%d'}, #{@expire}, #{@comment}"
+    @user.primary_group = @primary_group
     return if is_mode? :noop
     unless @user.save then
       warning @user.errors.full_messages.join ' '
@@ -247,6 +249,18 @@ class AddUser
     end
     info "Created a new LDAP user #{@user.dn}."
     info @user.to_s
+  end
+
+  def create_primary_group
+    @primary_group = Group.new @uid
+    @primary_group.gid_number = @gid_number
+    return if is_mode? :noop
+    unless @primary_group.save then
+      warning @primary_group.errors.full_messages.join ' '
+      error "Failed to create a new LDAP group #{@primary_group.dn}!"
+    end
+    info "Created a new LDAP group #{@primary_group.dn}."
+    info @primary_group.to_s
   end
 
   def create_homedir
@@ -312,6 +326,7 @@ EOHelp
 
   def main
     set_password generate_random_password(PASSWORD_LENGTH)
+    create_primary_group
     create_user
     create_homedir
     # --help
