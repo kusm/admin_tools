@@ -118,7 +118,7 @@ module ManageUser
 
   def is_mode?(type)
     ## include されずに直接呼ばれた場合は常に true を返す
-    return true unless instance_variables.include?(:flags)
+    return true unless instance_variables.include?(:@flags)
     @flags[type]
   end
 
