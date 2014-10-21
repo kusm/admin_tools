@@ -22,32 +22,30 @@ Next, it removes related data as shown below:
 EOHelp
 
   def initialize
-    @config = {
-      :archive_homedir => true,
-      :remove_user => true,
-      :remove_group => true,
-      :remove_membership => true
-    }
     @opts = OptionParser.new
     initialize_flags
+    enable_mode :archive_homedir
+    enable_mode :remove_user
+    enable_mode :remove_group
+    enable_mode :remove_membership
     initialize_parser
   end
 
   def initialize_parser
     @opts.on('-m', '--[no-]membership', TrueClass, "remove memberships (default: true)") do |membership|
-      @config[:remove_membership] = membership
+      set_mode :remove_membership, membership
     end
     @opts.on('-u', '--[no-]user', TrueClass, "remove the user (default: true)") do |user|
-      @config[:remove_user] = user
+      set_mode :remove_user, user
     end
     @opts.on('-g', '--[no-]group', TrueClass, "remove the group (default: true)") do |group|
-      @config[:remove_group] = group
+      set_mode :remove_group, group
     end
-    @opts.on('-d', '--[no-]homedir', TrueClass, "archive the home directory (default: true)") do |homedir|
-      @config[:archive_homedir] = homedir
+    @opts.on('-a', '--[no-]archive', TrueClass, "archive the home directory (default: true)") do |archive|
+      set_mode :archive_homedir, archive
     end
     @opts.on('-n', '--noop', TrueClass, "do nothing") do
-      set_mode :noop, true
+      enable_mode :noop
     end
     @opts.on('-v', '--[no-]verbose', TrueClass, "increase verbosity") do |verbose|
       set_mode :verbose, verbose
@@ -56,7 +54,7 @@ EOHelp
       set_mode :test, test
     end
     @opts.on_tail('-h', '--help', TrueClass, "show a help message") do
-      set_mode :help, true
+      enable_mode :help
     end 
   end
   private :initialize_parser
@@ -97,7 +95,7 @@ EOHelp
 
   def archive_homedir
     return if is_mode? :noop
-    return unless (@config[:archive_homedir])
+    return unless is_mode? :archive_homedir
     return unless (Dir.exists?("/home/#{@uid}"))
     tarfile = EXPIRED_DIR + "#{@uid}.tar"
     command = "#{TAR} cf #{tarfile} #{@uid}"
@@ -111,7 +109,7 @@ EOHelp
 
   def remove_user
     return if is_mode? :noop
-    return unless (@config[:remove_user])
+    return unless is_mode? :remove_user
     return unless (User.exists?(@uid))
     User.destroy(@uid)
     info "Removed the user #{@uid}"
@@ -119,7 +117,7 @@ EOHelp
 
   def remove_primary_group
     return if is_mode? :noop
-    return unless (@config[:remove_group])
+    return unless is_mode? :remove_group
     return unless (User.exists?(@uid))
     return unless (Group.exists?(@uid))
     cn = User.find(@uid).primary_group.cn
@@ -129,7 +127,7 @@ EOHelp
 
   def remove_memberships
     return if is_mode? :noop
-    return unless (@config[:remove_membership])
+    return unless is_mode? :remove_membership
     return unless (User.exists?(@uid))
     User.find(@uid).groups.each &method(:remove_membership)
   end

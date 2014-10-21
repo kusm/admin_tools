@@ -103,12 +103,19 @@ module ManageUser
   end
 
   def initialize_flags
-    @flags = {
-      noop: false,
-      verbose: false,
-      test: false,
-      help: false
-    }
+    @flags = {}
+    disable_mode :noop
+    disable_mode :verbose
+    disable_mode :test
+    disable_mode :help
+  end
+
+  def disable_mode(type)
+    set_mode type, false
+  end
+
+  def enable_mode(type)
+    set_mode type, true
   end
 
   def set_mode(type, enabled)
