@@ -63,7 +63,7 @@ class AddUser
       set_gid_number gid_number
     end
     @opts.on('-n', '--noop', TrueClass, "do nothing") do
-      set_mode :noop, true
+      enable_mode :noop
     end
     @opts.on('-v', '--[no-]verbose', TrueClass, "increase verbosity") do |verbose|
       set_mode :verbose, verbose
@@ -72,7 +72,7 @@ class AddUser
       set_mode :test, test
     end
     @opts.on_tail('-h', '--help', TrueClass, "show a help message") do
-      set_mode :help, true
+      enable_mode :help
     end 
   end
   private :initialize_parser
