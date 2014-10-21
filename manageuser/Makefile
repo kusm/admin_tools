@@ -1,11 +1,11 @@
+
+.PHONY: all secret clean
+
 all: secret
 
-secret: secret/ldap.admin.secret
-	chmod 600 secret/*.secret
-
-secret/ldap.admin.secret: secret/ldap.admin.secret.gpg
-	@[ -f secret/ldap.admin.secret ] || gpg secret/ldap.admin.secret.gpg
+secret: config/connection.yaml
+	chmod 600 $<
 
 clean:
 	git clean -fX .
-	rm -f *.aux *.log
+

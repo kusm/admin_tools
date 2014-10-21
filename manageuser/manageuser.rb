@@ -21,7 +21,6 @@ module ManageUser
   EXPIRED_DIR = Pathname.new '/home.backup/expired'
   PROGRAM_DIR = Pathname.new File.expand_path('../', __FILE__)
   CONFIG_FILE = PROGRAM_DIR + 'config/connection.yaml'
-  LDAP_SECRET_FILE = PROGRAM_DIR + 'secret/ldap.secret'
   TEMPLATE_DIR = PROGRAM_DIR + 'template/'
 
   ID_RANGE = 2000...5000
@@ -36,20 +35,17 @@ module ManageUser
   end
 
   def self.setup_connection
+    error "#{CONFIG_FILE} was NOT found!" unless File.exists? CONFIG_FILE
+    if File.world_readable?(CONFIG_FILE) then
+      warning "#{CONFIG_FILE} should NOT be readable by others."
+      system('make secret')
+    end
     config = read_connection_config(CONFIG_FILE)
-    config[:password_block] = Proc.new {
-      get_password_from_secret
-    }
     ActiveLdap::Base.setup_connection config
   end
 
   ##################### Private Functions #####################
   private
-
-  def self.get_password_from_secret
-    system('make secret') unless File.exists?(LDAP_SECRET_FILE)
-    File.open(LDAP_SECRET_FILE, 'r').read.chomp
-  end
 
   def self.read_connection_config(file)
     error "Config file #{file} does NOT exist!" unless File.exists?(file)
@@ -121,6 +117,8 @@ module ManageUser
   end
 
   def is_mode?(type)
+    ## include されずに直接呼ばれた場合は常に true を返す
+    return true unless instance_variables.include?(:flags)
     @flags[type]
   end
 

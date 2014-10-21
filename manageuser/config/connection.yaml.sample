@@ -2,4 +2,5 @@ host: localhost
 port: 389
 base: dc=math,dc=kyoto-u,dc=ac,dc=jp
 bind_dn: cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp
+password: NicePasswordHere
 
