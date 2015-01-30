@@ -97,6 +97,8 @@ EOHelp
   def verify_user
     error "The user #{@uid} does NOT exist!" unless User.exist?(@uid)
     user = User.find(@uid)
+    cn = user.primary_group.cn
+    error "The group #{cn} does NOT exist!" unless Group.exist?(cn)
     uid_number = user.uid_number
     gid_number = user.gid_number
     range = get_id_range
@@ -114,14 +116,14 @@ EOHelp
   end
 
   def archive_homedir
-    return if is_mode? :noop
     return unless is_mode? :archive_homedir
-    return unless (Dir.exists?("/home/#{@uid}"))
+    error "The home directory /home/#{@uid} does NOT exist!" unless Dir.exists?("/home/#{@uid}")
+    return if is_mode? :noop
     tarfile = EXPIRED_DIR + "#{@uid}.tar"
     command = "#{TAR} cf #{tarfile} #{@uid}"
     pid = spawn(command, :chdir => "/home")
     Process.detach(pid)
-    info "Started archiving the home directory"
+    info "Started archiving the home directory."
     info "(pid #{pid})# #{command}"
   rescue Errno::ENOENT => tar_error
     error "Failed to execute tar!\n#{tar_error}"
@@ -130,45 +132,46 @@ EOHelp
   def remove_user
     return if is_mode? :noop
     return unless is_mode? :remove_user
-    return unless (User.exists?(@uid))
     User.destroy(@uid)
-    info "Removed the user #{@uid}"
+    info "Removed the user #{@uid}."
   end
 
   def remove_primary_group
     return if is_mode? :noop
     return unless is_mode? :remove_group
-    return unless (User.exists?(@uid))
-    return unless (Group.exists?(@uid))
     cn = User.find(@uid).primary_group.cn
     Group.destroy(cn)
-    info "Removed the group #{cn}"
+    info "Removed the group #{cn}."
   end
 
   def remove_memberships
     return if is_mode? :noop
     return unless is_mode? :remove_membership
-    return unless (User.exists?(@uid))
     User.find(@uid).groups.each &method(:remove_membership)
   end
 
   def remove_membership(group)
+    return if is_mode? :noop
     memberUids = group.memberUid
     memberUids.delete(@uid)
     group.memberUid = memberUids # call setter in order to overwrite
-    unless group.save
+    unless group.save then
       warning group.errors.full_messages.join ' '
       error group.errors.full_message
     end
-    info "Removed #{@uid} from #{group.cn}"
+    info "Removed #{@uid} from #{group.cn}."
   end
 
   def expire
     return if is_mode? :noop
-    return if is_mode? :test
+    if is_mode? :test then
+      info 'Skipped the exipration process.'
+      return
+    end
     File.open(EXPIRED_LIST, 'a') do |f|
       f.puts(@uid)
     end
+    info "Expired the user #{@uid}."
   end
 
   def show_help
