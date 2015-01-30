@@ -76,6 +76,7 @@ EOHelp
       show_help
       exit
     end
+    verify_user
     archive_homedir
     remove_memberships
     remove_primary_group
@@ -91,6 +92,25 @@ EOHelp
 
   def set_uid(uid)
     @uid = uid
+  end
+
+  def verify_user
+    error "The user #{@uid} does NOT exist!" unless User.exist?(@uid)
+    user = User.find(@uid)
+    uid_number = user.uid_number
+    gid_number = user.gid_number
+    range = get_id_range
+    mode_string = is_mode?(:test) ? 'test' : 'normal'
+    if (range.include?(uid_number)) then
+      info "The uidNumber #{uid_number} is in #{mode_string} user range #{range}."
+    else
+      warning "The uidNumber #{uid_number} is NOT in #{mode_string} user range #{range}."
+    end
+    if (range.include?(gid_number)) then
+      info "The gidNumber #{gid_number} is in #{mode_string} user range #{range}."
+    else
+      warning "The gidNumber #{gid_number} is NOT in #{mode_string} user range #{range}."
+    end
   end
 
   def archive_homedir
@@ -145,6 +165,7 @@ EOHelp
 
   def expire
     return if is_mode? :noop
+    return if is_mode? :test
     File.open(EXPIRED_LIST, 'a') do |f|
       f.puts(@uid)
     end
