@@ -102,6 +102,12 @@ module ManageUser
     is_mode?(:test) ? TEST_ID_RANGE : ID_RANGE
   end
 
+  def is_expired?(uid)
+    File.open(EXPIRED_LIST, 'r') do |file|
+      return file.each_line.any? { |line| line.strip == uid }
+    end
+  end
+
   def initialize_flags
     @flags = {}
     disable_mode :noop

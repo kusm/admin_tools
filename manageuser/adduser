@@ -113,9 +113,8 @@ class AddUser
     end
     @uid = uid
     info "Set UID as #{uid}."
-    if (User.exists?(uid)) then
-      error "The user #{uid} already exists!"
-    end
+    error "The user #{uid} already exists!" if User.exists?(uid)
+    error "The user #{uid} is an expired user!" if is_expired?(uid)
     set_homedir HOME + uid unless @homedir
   end
 
