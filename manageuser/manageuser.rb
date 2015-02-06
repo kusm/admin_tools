@@ -1,5 +1,8 @@
 # -*- coding: utf-8; -*-
 
+require 'rubygems'
+require 'bundler/setup'
+
 require 'active_ldap'
 require 'yaml'
 require 'pathname'
