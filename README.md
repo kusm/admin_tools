@@ -19,6 +19,7 @@ $ vi config/connection.yaml
 ### Usage
 
 ```
-# bundle exec ./adduser --help
-# bundle exec ./deluser --help
+# ./adduser --help
+# ./deluser --help
+# ./passwd --help
 ```
