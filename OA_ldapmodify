@@ -5,7 +5,7 @@ require 'optparse'
 require 'base64'
 
 LDAPBASE = "dc=math,dc=kyoto-u,dc=ac,dc=jp"
-LDAPADMIN = "cn=admin,#{LDAPBASE}"
+LDAPADMIN = "cn=Manager,#{LDAPBASE}"
 LDAPOPTIONS = "-W -D #{LDAPADMIN}"
 
 REPLACEABLE_TYPES = [:cn, :sn, :givenName, :loginShell, :gecos, :displayName]
@@ -43,6 +43,9 @@ end
 $opts.on('-j', '--japanese', "japanese mode; try to replace attribute;lang-ja") do
 	$config[:japanese] = true
 end
+$opts.on('-p', '--phonetic', "phonetic mode: try to replace attribute;phonetic") do
+    $config[:phonetic] = true
+end
 $opts.on('-v', '--verbose', "increase verbosity") do
 	$config[:verbose] = true
 end
@@ -76,14 +79,14 @@ if (!ARGV.empty?) then
 	$opts.order!(ARGV)
 end
 
-def modify_impl(dn, subtype, attr_type, attr_val, ja = false)
+def modify_impl(dn, subtype, attr_type, attr_val, ja = false, ph = false)
 	ldif = ''
 	ldif += "\# #{attr_type}: #{attr_val}\n" if $config[:verbose]
 	ldif += <<-EOLdif.gsub(/^\s*/, '')
 	dn: #{dn}
 	changetype: modify
-	#{subtype}: #{attr_type}#{ja ? ';lang-ja' : ''}
-	#{attr_type}#{ja ? ';lang-ja:' : ''}: #{ja ? Base64.encode64(attr_val) : attr_val}
+	#{subtype}: #{attr_type}#{ja ? ';lang-ja' : ''}#{ph ? ';phonetic' : ''}
+	#{attr_type}#{ja ? ';lang-ja' : ''}#{ph ? ';phonetic' : ''}#{ja ? ':' : ''}: #{ja ? Base64.encode64(attr_val) : attr_val}
 	EOLdif
 	# --ldif-only
 	if ($config[:ldif]) then
@@ -115,7 +118,7 @@ def remove_from_group(user, group)
 end
 
 def replace(user, attr_type, attr_val)
-	modify_impl("uid=#{user},ou=People,#{LDAPBASE}", 'replace', attr_type, attr_val, $config[:japanese])
+	modify_impl("uid=#{user},ou=People,#{LDAPBASE}", 'replace', attr_type, attr_val, $config[:japanese], $config[:phonetic])
 end
 
 def show_help(command=false)
