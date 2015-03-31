@@ -4,4 +4,5 @@ source "https://rubygems.org"
 ## encoding で問題が起きる．
 gem "ruby-ldap"
 gem "activeldap"
-
+## Excel output
+gem 'spreadsheet'
