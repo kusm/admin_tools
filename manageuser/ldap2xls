@@ -36,7 +36,6 @@ def userinfo(user)
   @userinfo.push @new['phonetic_en'] ||= ''
   @userinfo.push @new['lang-ja'] ||= ''
   @userinfo.push @new['phonetic_ja'] ||= ''
-  @userinfo.push @user.cn
   @userinfo.push @user.gecos
   @userinfo.push @user.givenName
   @userinfo.push @user.sn
@@ -49,11 +48,10 @@ def create_row0(sheet)
   @sheet[0,1] = "Phonetic(Web:en)"
   @sheet[0,2] = "DisplayName(Web:ja)"
   @sheet[0,3] = "Phonetic(Web:ja)"
-  @sheet[0,4] = "Phonetic(Web:ja)"
-  @sheet[0,5] = "FullName(DB)"
-  @sheet[0,6] = "FirstName"
-  @sheet[0,7] = "FamilyName"
-  @sheet[0,8] = "Mail"
+  @sheet[0,4] = "FullName(DB)"
+  @sheet[0,5] = "FirstName"
+  @sheet[0,6] = "FamilyName"
+  @sheet[0,7] = "Mail"
 end
 
 book = Spreadsheet::Workbook.new
@@ -75,9 +73,9 @@ groups.each_with_index do |group, i|
   sheet = book.create_worksheet
   sheet.name = group[1]
   create_row0(sheet)
+  (0..7).each do |num| sheet.column(num).width = 20 end
   ManageUser::Group.find(group[0]).memberUID.each_with_index do |uid, i|
     userinfo(uid).each_with_index do |value, j|
-      sheet.column(j).width = 20
       sheet[i+1,j] = value
     end
   end
