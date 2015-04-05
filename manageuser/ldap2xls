@@ -7,55 +7,43 @@ require 'spreadsheet'
 ManageUser.need_root_or_exit unless $DEBUG
 ManageUser.setup_connection
 
-def displayname_to_hash(array)
-  @array = array
-  @new = {}
-  if @array.class == Array
-    @array.each do |h|
-      if h['lang-ja'].class == String
-        @new['lang-ja'] = h['lang-ja']
-      end
-      if h['lang-ja'].class == Hash
-        @new['phonetic_ja'] = h['lang-ja']['phonetic']
-      end
-      if h['lang-en'].class == Hash
-        @new['phonetic_en'] = h['lang-en']['phonetic']
-      end
+DOMAIN = 'math.kyoto-u.ac.jp'
+
+def displayname_to_hash(displayName)
+  return {} unless displayName.is_a? Array
+  result = {}
+  displayName.each do |component|
+    if component['lang-ja'].is_a? String
+      result['lang-ja'] = component['lang-ja']
     end
-  else
-    @new = {}
+    if component['lang-ja'].is_a? Hash
+      result['lang-ja;phonetic'] = component['lang-ja']['phonetic']
+    end
+    if component['lang-en'].is_a? Hash
+      result['lang-en;phonetic'] = component['lang-en']['phonetic']
+    end
   end
-  return @new
+  return result
 end
 
-def userinfo(user)
-  @userinfo = Array.new
-  @user = ManageUser::User.find("#{user}")
-  @userinfo.push @user.cn
-  @new = displayname_to_hash(@user.displayName)
-  @userinfo.push @new['phonetic_en'] ||= ''
-  @userinfo.push @new['lang-ja'] ||= ''
-  @userinfo.push @new['phonetic_ja'] ||= ''
-  @userinfo.push @user.gecos
-  @userinfo.push @user.givenName
-  @userinfo.push @user.sn
-  @userinfo.push ( @user.uid  + '@math.kyoto-u.ac.jp')
-end
-
-def create_row0(sheet)
-  @sheet = sheet
-  @sheet[0,0] = "DisplayName(Web:en)"
-  @sheet[0,1] = "Phonetic(Web:en)"
-  @sheet[0,2] = "DisplayName(Web:ja)"
-  @sheet[0,3] = "Phonetic(Web:ja)"
-  @sheet[0,4] = "FullName(DB)"
-  @sheet[0,5] = "FirstName"
-  @sheet[0,6] = "FamilyName"
-  @sheet[0,7] = "Mail"
+def userinfo(uid)
+  userinfo = Array.new
+  user = ManageUser::User.find("#{uid}")
+  userinfo.push user.cn
+  displayName = displayname_to_hash(user.displayName)
+  userinfo.push displayName['lang-en;phonetic'] || ''
+  userinfo.push displayName['lang-ja'] || ''
+  userinfo.push displayName['lang-ja;phonetic'] || ''
+  userinfo.push user.gecos
+  userinfo.push user.givenName
+  userinfo.push user.sn
+  userinfo.push "#{user.uid}@#{DOMAIN}"
+  userinfo.push user.uid
+  return userinfo
 end
 
 book = Spreadsheet::Workbook.new
-groups = {
+GROUPS = {
   'kyoju' => '教授',
   'junkyoju' => '准教授',
   'koshi' => '講師',
@@ -69,15 +57,19 @@ groups = {
   'doctor' => '博士',
   'master' => '修士'
 }
-groups.each_with_index do |group, i|
-  sheet = book.create_worksheet
-  sheet.name = group[1]
-  create_row0(sheet)
-  (0..7).each do |num| sheet.column(num).width = 20 end
-  ManageUser::Group.find(group[0]).memberUID.each_with_index do |uid, i|
-    userinfo(uid).each_with_index do |value, j|
-      sheet[i+1,j] = value
-    end
+HEADERS = %w{
+  DisplayName(Web:en) Phonetic(Web:en) DisplayName(Web:ja) Phonetic(Web:ja)
+  FullName(DB) FirstName FamilyName Mail UserName
+}
+GROUPS.each do |group_cn, group_name|
+  sheet = book.create_worksheet :name => group_name
+  sheet.row(0).concat HEADERS
+  HEADERS.size.times do |i|
+    sheet.column(i).width = 20
+  end
+  ManageUser::Group.find(group_cn).memberUID.each_with_index do |uid, i|
+    sheet.row(i + 1).concat userinfo(uid)
   end
 end
 book.write('meibo.xls')
+
