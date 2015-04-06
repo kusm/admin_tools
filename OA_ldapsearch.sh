@@ -17,8 +17,8 @@
 IFS=:
 SEARCH_FILTER="(&(`echo "$*" | sed -e 's/:/\)\(/g'`))"
 echo "$SEARCH_FILTER"
-echo "ldapsearch -D \"cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp\" -W -b \"dc=math,dc=kyoto-u,dc=ac,dc=jp\" \"$SEARCH_FILTER\""
+echo "ldapsearch -D \"cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp\" -W -b \"dc=math,dc=kyoto-u,dc=ac,dc=jp\" \"$SEARCH_FILTER\""
 
 echo "Search Results"
-ldapsearch -D "cn=Manager,dc=math,dc=kyoto-u,dc=ac,dc=jp" -W -b "dc=math,dc=kyoto-u,dc=ac,dc=jp" "$SEARCH_FILTER" -v
+ldapsearch -D "cn=admin,dc=math,dc=kyoto-u,dc=ac,dc=jp" -W -b "dc=math,dc=kyoto-u,dc=ac,dc=jp" "$SEARCH_FILTER" -v
 
