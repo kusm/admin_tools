@@ -22,6 +22,7 @@ Next, it removes related data as shown below:
 EOHelp
 
   def initialize
+    @uid = nil
     @opts = OptionParser.new
     initialize_flags
     enable_mode :archive_homedir
@@ -68,14 +69,12 @@ EOHelp
       # Continue parsing
       @opts.order!(argv)
     end
+    show_help_exit unless (@uid)
   end
 
   def main
     # --help
-    if is_mode? :help then
-      show_help
-      exit
-    end
+    show_help_exit if is_mode? :help
     verify_user
     archive_homedir
     remove_memberships
@@ -174,9 +173,10 @@ EOHelp
     info "Expired the user #{@uid}."
   end
 
-  def show_help
+  def show_help_exit
     puts HELP
     puts @opts.to_s.gsub(/deluser/, 'deluser UID')
+    exit
   end
 end
 
