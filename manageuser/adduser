@@ -218,6 +218,7 @@ class AddUser
     @user.home_directory = @homedir.to_s
     @user.uid_number = @uid_number
     @user.gid_number = @gid_number
+    @user.mail = "#{@uid}@#{DOMAIN}"
     @user.description = "SINCE #{Time.now.strftime '%Y%m%d'}, #{@expire}, #{@comment}"
     @user.primary_group = @primary_group
     return if is_mode? :noop

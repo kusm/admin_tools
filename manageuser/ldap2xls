@@ -7,8 +7,6 @@ require 'spreadsheet'
 ManageUser.need_root_or_exit unless $DEBUG
 ManageUser.setup_connection
 
-DOMAIN = 'math.kyoto-u.ac.jp'
-
 def displayname_to_hash(displayName)
   return {} unless displayName.is_a? Array
   result = {}
@@ -37,7 +35,7 @@ def userinfo(uid)
   userinfo.push user.gecos
   userinfo.push user.givenName
   userinfo.push user.sn
-  userinfo.push "#{user.uid}@#{DOMAIN}"
+  userinfo.push "#{user.uid}@#{ManageUser::DOMAIN}"
   userinfo.push user.uid
   return userinfo
 end

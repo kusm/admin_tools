@@ -26,6 +26,7 @@ module ManageUser
   CONFIG_FILE = PROGRAM_DIR + 'config/connection.yaml'
   TEMPLATE_DIR = PROGRAM_DIR + 'template/'
 
+  DOMAIN = 'math.kyoto-u.ac.jp'
   ID_RANGE = 2000...5000
   TEST_ID_RANGE = 12000...15000
   TEST_USER_PREFIX = 'testuser'
