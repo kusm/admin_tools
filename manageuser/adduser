@@ -289,7 +289,7 @@ class AddUser
     end
     ## render template files
     [
-      [ 'prefs.js.org.erb', './.icedove/prefs.js.org' ]
+      [ 'prefs.js.erb', './.icedove/default/prefs.js' ]
     ].each do |template_name, destination|
       (@homedir + destination).open('w') do |file|
         file.write render(template_name)
