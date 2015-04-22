@@ -4,6 +4,7 @@ require 'rubygems'
 require 'bundler/setup'
 
 require 'active_ldap'
+require 'securerandom'
 require 'yaml'
 require 'pathname'
 require 'fileutils'
@@ -68,7 +69,7 @@ module ManageUser
 
   def calculate_hashed_password(raw_password)
     salt_charset = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-    salt = salt_charset[rand 64] + salt_charset[rand 64]
+    salt = Array.new(4) { salt_charset[SecureRandom.random_number(salt_charset.length)] }.join
     '{SSHA}' + Base64.encode64(Digest::SHA1.digest(raw_password + salt) + salt).chomp
   end
 
