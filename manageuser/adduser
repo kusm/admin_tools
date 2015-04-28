@@ -10,6 +10,7 @@ ManageUser.setup_connection
 class AddUser
   include ManageUser
 
+  LOCK_FILE = '/tmp/adduser.lock'
   SHELLS = %w(bash zsh tcsh nologin)
   DEFAULT_SHELL = SHELLS.first
   SKEL_DIR = PROGRAM_DIR + 'skel/'
@@ -56,10 +57,12 @@ class AddUser
     @opts.on('--expire=EXPIRE', "set an expire date") do |expire|
       set_expire expire
     end
-    @opts.on('--uid-number=NUMBER', OptionParser::DecimalInteger, "set a uid number") do |uid_number|
+    @opts.on('--uid-number=NUMBER', OptionParser::DecimalInteger, "[DEPRECATED] set a uid number") do |uid_number|
+      warning '--uid-number is deprecated!'
       set_uid_number uid_number
     end
-    @opts.on('--gid-number=NUMBER', OptionParser::DecimalInteger, "set a gid number") do |gid_number|
+    @opts.on('--gid-number=NUMBER', OptionParser::DecimalInteger, "[DEPRECATED] set a gid number") do |gid_number|
+      warning '--uid-number is deprecated!'
       set_gid_number gid_number
     end
     @opts.on('-n', '--noop', TrueClass, "do nothing") do
@@ -94,9 +97,6 @@ class AddUser
     set_uid uid
     set_full_name full_name
     ## set default values if not given by options
-    range = get_id_range
-    set_uid_number calculate_max(:uidNumber, range) + 1 unless @uid_number
-    set_gid_number calculate_max(:gidNumber, range) + 1 unless @gid_number
     set_comment is_mode?(:test) ? 'test account' : 'normal account' unless @comment
     set_expire '?' unless @expire
   end
@@ -204,6 +204,13 @@ class AddUser
     @hashed_password = calculate_hashed_password password
     info "Set password as #{@password}."
   end
+
+  def compute_uid_gid_number
+    range = get_id_range
+    set_uid_number calculate_max(:uidNumber, range) + 1 unless @uid_number
+    set_gid_number calculate_max(:gidNumber, range) + 1 unless @gid_number
+  end
+  private :compute_uid_gid_number
 
   def create_user
     return if @user
@@ -341,8 +348,11 @@ EOHelp
     # --help
     show_help_exit if is_mode? :help
     set_password generate_random_password(PASSWORD_LENGTH)
-    create_primary_group
-    create_user
+    synchronize do
+      compute_uid_gid_number
+      create_primary_group
+      create_user
+    end
     add_user_to_groups
     add_user_to_ml
     create_homedir
@@ -355,6 +365,14 @@ EOHelp
   def calculate_max(attr_type, range)
     users = User.find(:all, :attribute => attr_type, :value => '*')
     users.collect(&attr_type).select(&range.method(:include?)).max || range.first
+  end
+
+  def synchronize
+    lock_file = File.open(LOCK_FILE, 'w', 0600)
+    lock_file.flock(File::LOCK_EX)
+    yield
+  ensure
+    lock_file.close
   end
 
   def debug
