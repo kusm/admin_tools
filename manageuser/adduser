@@ -14,7 +14,7 @@ class AddUser
   SHELLS = %w(bash zsh tcsh nologin)
   DEFAULT_SHELL = SHELLS.first
   SKEL_DIR = PROGRAM_DIR + 'skel/'
-  VALID_NAME = /^[a-z0-9\.\-\s]+,[a-z0-9\.\-\s]+$/i
+  VALID_NAME = /^[a-z0-9\.\-\s]+$/i
   VALID_UID = /^[a-z][a-z0-9\.\-]*[a-z0-9]$/i
   PERMANENT_GROUPS = %w[kyoju junkyoju koshi jokyo]
   PASSWORD_LENGTH = 10
@@ -24,6 +24,9 @@ class AddUser
     @primary_group = nil
     @uid_number = nil
     @gid_number = nil
+    @full_name = nil
+    @family_name = ''
+    @given_name = ''
     @homedir = nil
     @password = nil
     @hashed_password = nil
@@ -57,6 +60,12 @@ class AddUser
     @opts.on('--expire=EXPIRE', "set an expire date") do |expire|
       set_expire expire
     end
+    @opts.on('--family-name=FAMILY_NAME', "set a family name made of UPPERCASE") do |family_name|
+      set_family_name family_name
+    end
+    @opts.on('--given-name=Given_name', "set a given name made of Camelcase") do |given_name|
+      set_given_name given_name
+    end
     @opts.on('--uid-number=NUMBER', OptionParser::DecimalInteger, "[DEPRECATED] set a uid number") do |uid_number|
       warning '--uid-number is deprecated!'
       set_uid_number uid_number
@@ -80,7 +89,10 @@ class AddUser
   end
   private :initialize_parser
 
-  # Parse UID and FULLNAME: ./adduser [OPTIONS] UID "FAMILY_NAME, Given_name"
+  # Parse options of the following form.
+  #     ./adduser [OPTIONS] UID
+  # The following is also supported for backward compatibility.
+  #     [DEPRECATED] ./adduser [OPTIONS] UID "FAMILY_NAME, Given_name"
   def parse_options!(argv)
     @opts.order!(argv)
     if (!argv.empty?) then
@@ -91,11 +103,12 @@ class AddUser
     if (!argv.empty?) then
       # Try to treat the next option as a FULLNAME
       full_name = argv.shift
+      parse_full_name full_name
     end
     @opts.order!(argv)
-    show_help_exit unless (uid and full_name)
+    show_help_exit unless uid
+    set_full_name
     set_uid uid
-    set_full_name full_name
     ## set default values if not given by options
     set_comment is_mode?(:test) ? 'test account' : 'normal account' unless @comment
     set_expire '?' unless @expire
@@ -118,26 +131,44 @@ class AddUser
     set_homedir HOME + uid unless @homedir
   end
 
-  def set_full_name(name)
-    unless (name =~ VALID_NAME) then
-      error "#{name} is NOT a valid full name! It should match /#{VALID_NAME.source}/."
+  def parse_full_name(name)
+    family_name, given_name = name.split /,/
+    set_family_name family_name
+    set_given_name given_name
+    return unless is_mode?(:verbose)
+    warning 'Adduser now tries parsing a full name due to backward compatibility.'
+    warning 'You should use --family-name and/or --given-name instead.'
+  end
+  private :parse_full_name
+
+  def set_family_name(family_name)
+    unless (family_name =~ VALID_NAME) then
+      error "#{family_name} is NOT a valid family name! It should match /#{VALID_NAME.source}/."
     end
-    @family_name, @given_name = name.split /,/
-    @family_name.strip!
-    @given_name.strip!
-    if (@family_name.length == 0 or @given_name.length == 0) then
-      error "The full name #{name} is invalid!"
-    end
-    @full_name = "#{@family_name} #{@given_name}"
+    @family_name = family_name.strip
     return unless is_mode?(:verbose)
     if (@family_name != @family_name.upcase)
       warning "FAMILY_NAME should be made of uppercase."
     end
     info "Set FAMILY_NAME as #{@family_name}."
+  end
+
+  def set_given_name(given_name)
+    unless (given_name =~ VALID_NAME) then
+      error "#{given_name} is NOT a valid given name! It should match /#{VALID_NAME.source}/."
+    end
+    @given_name = given_name.strip
+    return unless is_mode?(:verbose)
     if (@given_name[0] != @given_name[0].upcase)
       warning "Given_name should start with uppercase."
     end
     info "Set Given_name as #{@given_name}."
+  end
+
+  def set_full_name
+    @full_name = "#{@family_name} #{@given_name}".strip
+    return unless is_mode?(:verbose)
+    info "Set full name as #{@full_name}."
   end
 
   def set_homedir(dir)
@@ -310,7 +341,7 @@ class AddUser
   ##########################################################
   ######################### <HELP>  ########################
   def show_help_exit
-    usage = @opts.to_s.gsub("[options]", '[options] UID "FAMILY_NAME, Given_name"')
+    usage = @opts.to_s.gsub("[options]", '[options] UID')
     prog = @opts.program_name
     puts <<EOHelp
 The adduser script adds a new LDAP user on the system.
@@ -335,9 +366,9 @@ the ML ~user/.forward   | will be modified                 | will NOT be modifie
 ------------------------+----------------------------------+-----------------------------+
 
 Example:
-    #{prog} --group=jokyo,oa --shell=/usr/bin/zsh --comment="Super Global Jokyo" uwabami "SASAKI, Youhei"
-    #{prog} -v -g oa -g doctor --zsh --test --uid-number=12345 --gid-number=12345 uda "UDA, Tomoki"
-    #{prog} -v -n --nologin --comment "adduser test" --test kuttinpa "ONODERA, Hikaru"
+    #{prog} --group=jokyo,oa --shell=/usr/bin/zsh --comment="SGU Jokyo" uwabami --family-name=SASAKI --given-name=Youhei
+    #{prog} -v -g oa -g doctor --zsh --test --uid-number=12345 --gid-number=12345 uda --family-name=UDA --given-name=Tomoki
+    #{prog} -v -n --nologin --comment "adduser test" --test kuttinpa --given-name=Kuttinpa
 EOHelp
     exit
   end
