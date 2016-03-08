@@ -1,4 +1,4 @@
-#! /usr/bin/env ruby -Ku
+#! /usr/bin/env ruby
 # -*- coding: utf-8; -*-
 require 'optparse'
 require './manageuser.rb'
@@ -59,6 +59,8 @@ HEADERS = %w{
   DisplayName(Web:en) Phonetic(Web:en) DisplayName(Web:ja) Phonetic(Web:ja)
   FullName(DB) FirstName FamilyName Mail UserName
 }
+
+assigned_uid = []
 GROUPS.each do |group_cn, group_name|
   sheet = book.create_worksheet :name => group_name
   sheet.row(0).concat HEADERS
@@ -67,7 +69,17 @@ GROUPS.each do |group_cn, group_name|
   end
   ManageUser::Group.find(group_cn).memberUID.each_with_index do |uid, i|
     sheet.row(i + 1).concat userinfo(uid)
+    assigned_uid.push uid
+  end
+end
+sheet = book.create_worksheet :name => "others"
+sheet.row(0).concat HEADERS
+HEADERS.size.times do |i|
+  sheet.column(i).width = 20
+end
+ManageUser::User.find(:all, :filter => [:not, [:or, {:uid => assigned_uid} ]]).each_with_index do |user, i|
+  unless user.uid == 'root'
+    sheet.row(i + 1).concat userinfo(user.uid)
   end
 end
 book.write('meibo.xls')
-
